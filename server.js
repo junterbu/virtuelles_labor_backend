@@ -6,8 +6,16 @@ import { initializeApp, applicationDefault } from "firebase-admin/app";
 
 dotenv.config();
 
+const corsOptions = {
+    origin: "https://junterbu.github.io", // Erlaube nur Anfragen von deiner GitHub Pages-Seite
+    methods: "GET,POST",
+    allowedHeaders: "Content-Type"
+};
+
+
+
 const app = express();
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 initializeApp({
@@ -51,6 +59,22 @@ app.post("/api/quiz", async (req, res) => {
         res.status(200).json({ message: "Quiz-Daten gespeichert!", punkte: quizPunkteNeu });
     } catch (error) {
         res.status(500).json({ error: "Fehler beim Speichern der Quiz-Daten" });
+    }
+});
+
+app.get("/api/data/:userId", async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const docRef = doc(db, "quizErgebnisse", userId);
+        const docSnap = await getDoc(docRef);
+
+        if (!docSnap.exists()) {
+            return res.status(404).json({ error: "Keine Daten gefunden" });
+        }
+
+        res.status(200).json(docSnap.data());
+    } catch (error) {
+        res.status(500).json({ error: "Fehler beim Abrufen der Daten" });
     }
 });
 
