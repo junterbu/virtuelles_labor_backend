@@ -18,6 +18,7 @@ if (!admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.applicationDefault(),
     });
+    console.log("✅ Firebase Admin SDK initialisiert");
 }
 
 const db = getFirestore();
@@ -46,61 +47,28 @@ app.get("/test", (req, res) => {
     res.json({ message: "CORS funktioniert!" });
 });
 
-// Route für das Speichern der Quiz-Daten
-app.post("/api/quiz", async (req, res) => {
-    try {
-        const { userId, raum, auswahl } = req.body;
-        const docRef = db.collection("quizErgebnisse").doc(userId);
-        const docSnap = await docRef.get();
-
-        let quizPunkteNeu = 0;
-        let beantworteteRäume = [];
-
-        if (docSnap.exists) {
-            beantworteteRäume = docSnap.data().beantworteteRäume || [];
-            quizPunkteNeu = docSnap.data().punkte || 0;
-        }
-
-        if (!beantworteteRäume.includes(raum)) {
-            const quizFragen = {
-                "Gesteinsraum": { antwort: "Sie zeigt an, dass gesetzliche Vorschriften eingehalten wurden", punkte: 10 },
-                "Mischer": { antwort: "Um die gesetzlichen Anforderungen an das Mischgut zu überprüfen", punkte: 10 },
-                "Marshall": { antwort: "Durch Erstellen einer Polynomfunktion und Finden des Maximums", punkte: 10 }
-            };
-
-            if (quizFragen[raum]?.antwort === auswahl) {
-                quizPunkteNeu += quizFragen[raum].punkte;
-            }
-            beantworteteRäume.push(raum);
-        }
-
-        await docRef.set({
-            punkte: quizPunkteNeu,
-            beantworteteRäume: beantworteteRäume
-        });
-
-        res.status(200).json({ message: "Quiz-Daten gespeichert!", punkte: quizPunkteNeu });
-    } catch (error) {
-        console.error("Fehler beim Speichern der Quiz-Daten:", error);
-        res.status(500).json({ error: "Fehler beim Speichern der Quiz-Daten" });
-    }
-});
-
-// Route für das Abrufen der Daten mit Timeout
+// Route für das Abrufen der Daten mit erweitertem Logging
 app.get("/api/data/:userId", async (req, res) => {
     try {
         res.set("Access-Control-Allow-Origin", "*");
         const userId = req.params.userId;
+        console.log(`📥 Anfrage erhalten für userId: ${userId}`);
+
         const docRef = db.collection("quizErgebnisse").doc(userId);
-        
+        console.log("🔍 Verbindung zu Firestore...", docRef.path);
+
         const fetchData = new Promise(async (resolve, reject) => {
             try {
                 const docSnap = await docRef.get();
+                console.log("📄 Firestore-Dokument gefunden:", docSnap.exists);
+
                 if (!docSnap.exists) {
+                    console.warn("⚠️ Keine Daten für diesen Benutzer gefunden");
                     return resolve({ error: "Keine Daten gefunden" });
                 }
                 resolve(docSnap.data());
             } catch (error) {
+                console.error("❌ Fehler bei Firestore-Abfrage:", error);
                 reject(error);
             }
         });
@@ -112,10 +80,10 @@ app.get("/api/data/:userId", async (req, res) => {
         const result = await Promise.race([fetchData, timeout]);
         res.status(200).json(result);
     } catch (error) {
-        console.error("Fehler beim Abrufen der Daten:", error);
+        console.error("🔥 Fehler beim Abrufen der Daten:", error);
         res.status(500).json({ error: "Fehler beim Abrufen der Daten" });
     }
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server läuft auf Port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server läuft auf Port ${PORT}`));
