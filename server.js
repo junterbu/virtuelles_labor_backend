@@ -15,14 +15,13 @@ const corsOptions = {
     allowedHeaders: "Content-Type"
 };
 
-// Service Account Key laden
-const serviceAccountPath = path.resolve("./serviceAccountKey.json");
-if (!fs.existsSync(serviceAccountPath)) {
-    console.error("❌ Fehler: serviceAccountKey.json fehlt. Stelle sicher, dass die Datei existiert.");
-    process.exit(1);
-}
+const serviceAccount = JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, "base64").toString("utf8"));
 
-const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf8"));
+if (!admin.apps.length) {
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+    });
+}
 
 // Firebase-Admin mit Service Account initialisieren
 if (!admin.apps.length) {
