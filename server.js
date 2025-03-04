@@ -8,8 +8,8 @@ import { getFirestore } from "firebase-admin/firestore";
 dotenv.config();
 
 const corsOptions = {
-    origin: "*", // Erlaube Anfragen von überall, falls weiterhin CORS-Probleme bestehen
-    methods: "GET,POST",
+    origin: "*", // Erlaube Anfragen von überall
+    methods: "GET,POST,OPTIONS",
     allowedHeaders: "Content-Type"
 };
 
@@ -25,7 +25,18 @@ const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Standard-Route für Root (/) hinzufügen
+// Middleware für CORS, falls Vercel Header entfernt
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
+    if (req.method === "OPTIONS") {
+        return res.status(200).end();
+    }
+    next();
+});
+
+// Standard-Route für Root (/)
 app.get("/", (req, res) => {
     res.json({ message: "Backend läuft erfolgreich auf Vercel! 🚀" });
 });
@@ -46,8 +57,8 @@ app.post("/api/quiz", async (req, res) => {
         let beantworteteRäume = [];
 
         if (docSnap.exists) {
-            beantworteteRäume = docSnap.data().beantworteteRäume;
-            quizPunkteNeu = docSnap.data().punkte;
+            beantworteteRäume = docSnap.data().beantworteteRäume || [];
+            quizPunkteNeu = docSnap.data().punkte || 0;
         }
 
         if (!beantworteteRäume.includes(raum)) {
@@ -78,6 +89,7 @@ app.post("/api/quiz", async (req, res) => {
 // Route für das Abrufen der Daten
 app.get("/api/data/:userId", async (req, res) => {
     try {
+        res.set("Access-Control-Allow-Origin", "*"); // Sicherstellen, dass CORS-Header gesetzt sind
         const userId = req.params.userId;
         const docRef = db.collection("quizErgebnisse").doc(userId);
         const docSnap = await docRef.get();
@@ -86,7 +98,6 @@ app.get("/api/data/:userId", async (req, res) => {
             return res.status(404).json({ error: "Keine Daten gefunden" });
         }
 
-        res.set("Access-Control-Allow-Origin", "*"); // Manuelle CORS-Header setzen
         res.status(200).json(docSnap.data());
     } catch (error) {
         console.error("Fehler beim Abrufen der Daten:", error);
