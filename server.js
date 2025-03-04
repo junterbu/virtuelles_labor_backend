@@ -19,8 +19,13 @@ if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
     process.exit(1);
 }
 
-const serviceAccount = JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, "base64").toString("utf8"));
-
+let serviceAccount;
+try {
+    serviceAccount = JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, "base64").toString("utf8"));
+} catch (error) {
+    console.error("❌ Fehler beim Dekodieren von FIREBASE_SERVICE_ACCOUNT:", error);
+    process.exit(1);
+}
 // Firebase-Admin mit Service Account initialisieren
 if (!admin.apps.length) {
     admin.initializeApp({
