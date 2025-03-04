@@ -25,6 +25,11 @@ const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// Standard-Route für Root (/) hinzufügen
+app.get("/", (req, res) => {
+    res.json({ message: "Backend läuft erfolgreich auf Vercel! 🚀" });
+});
+
 // Test-Route für CORS-Probleme
 app.get("/test", (req, res) => {
     res.json({ message: "CORS funktioniert!" });
