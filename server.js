@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
+import fs from "fs";
+import path from "path";
 
 // .env Datei laden
 dotenv.config();
@@ -13,12 +15,21 @@ const corsOptions = {
     allowedHeaders: "Content-Type"
 };
 
-// Firebase-Admin initialisieren, falls noch nicht initialisiert
+// Service Account Key laden
+const serviceAccountPath = path.resolve("./serviceAccountKey.json");
+if (!fs.existsSync(serviceAccountPath)) {
+    console.error("❌ Fehler: serviceAccountKey.json fehlt. Stelle sicher, dass die Datei existiert.");
+    process.exit(1);
+}
+
+const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf8"));
+
+// Firebase-Admin mit Service Account initialisieren
 if (!admin.apps.length) {
     admin.initializeApp({
-        credential: admin.credential.applicationDefault(),
+        credential: admin.credential.cert(serviceAccount),
     });
-    console.log("✅ Firebase Admin SDK initialisiert");
+    console.log("✅ Firebase Admin SDK erfolgreich mit Service Account initialisiert");
 }
 
 const db = getFirestore();
