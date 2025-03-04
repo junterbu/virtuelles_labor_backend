@@ -134,6 +134,24 @@ app.post("/api/quiz", async (req, res) => {
     }
 });
 
+// API-Route zum Abrufen der Punkte für einen Benutzer
+app.get("/api/punkte/:userId", async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const docRef = db.collection("quizErgebnisse").doc(userId);
+        const docSnap = await docRef.get();
+
+        if (!docSnap.exists) {
+            return res.status(404).json({ punkte: 0 });
+        }
+
+        res.status(200).json({ punkte: docSnap.data().punkte || 0 });
+    } catch (error) {
+        console.error("Fehler beim Abrufen der Punkte:", error);
+        res.status(500).json({ error: "Fehler beim Abrufen der Punkte" });
+    }
+});
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server läuft auf Port ${PORT}`));
