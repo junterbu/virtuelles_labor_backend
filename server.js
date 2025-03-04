@@ -1,7 +1,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { db } from "./firebase-config.js";
+import { getFirestore, doc, getDoc, setDoc } from "firebase-admin/firestore";
+import { initializeApp, applicationDefault } from "firebase-admin/app";
 
 dotenv.config();
 
@@ -9,31 +10,47 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => {
-    res.send("Backend läuft! 🚀");
+initializeApp({
+    credential: applicationDefault(),
 });
 
-// API-Route zum Speichern von Daten in Firebase
-app.post("/api/data", async (req, res) => {
-    try {
-        const { userId, data } = req.body;
-        await db.collection("userData").doc(userId).set(data);
-        res.status(200).json({ message: "Daten gespeichert!" });
-    } catch (error) {
-        res.status(500).json({ error: "Fehler beim Speichern der Daten" });
-    }
-});
+const db = getFirestore();
 
-// API-Route zum Abrufen von Daten aus Firebase
-app.get("/api/data/:userId", async (req, res) => {
+app.post("/api/quiz", async (req, res) => {
     try {
-        const doc = await db.collection("userData").doc(req.params.userId).get();
-        if (!doc.exists) {
-            return res.status(404).json({ error: "Keine Daten gefunden" });
+        const { userId, raum, auswahl } = req.body;
+        const docRef = doc(db, "quizErgebnisse", userId);
+        const docSnap = await getDoc(docRef);
+
+        let quizPunkteNeu = 0;
+        let beantworteteRäume = [];
+
+        if (docSnap.exists()) {
+            beantworteteRäume = docSnap.data().beantworteteRäume;
+            quizPunkteNeu = docSnap.data().punkte;
         }
-        res.status(200).json(doc.data());
+
+        if (!beantworteteRäume.includes(raum)) {
+            const quizFragen = {
+                "Gesteinsraum": { antwort: "Sie zeigt an, dass gesetzliche Vorschriften eingehalten wurden", punkte: 10 },
+                "Mischer": { antwort: "Um die gesetzlichen Anforderungen an das Mischgut zu überprüfen", punkte: 10 },
+                "Marshall": { antwort: "Durch Erstellen einer Polynomfunktion und Finden des Maximums", punkte: 10 }
+            };
+
+            if (quizFragen[raum].antwort === auswahl) {
+                quizPunkteNeu += quizFragen[raum].punkte;
+            }
+            beantworteteRäume.push(raum);
+        }
+
+        await setDoc(docRef, {
+            punkte: quizPunkteNeu,
+            beantworteteRäume: beantworteteRäume
+        });
+
+        res.status(200).json({ message: "Quiz-Daten gespeichert!", punkte: quizPunkteNeu });
     } catch (error) {
-        res.status(500).json({ error: "Fehler beim Abrufen der Daten" });
+        res.status(500).json({ error: "Fehler beim Speichern der Quiz-Daten" });
     }
 });
 
