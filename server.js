@@ -3,8 +3,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
-import fs from "fs";
-import path from "path";
 
 // .env Datei laden
 dotenv.config();
@@ -15,13 +13,13 @@ const corsOptions = {
     allowedHeaders: "Content-Type"
 };
 
-const serviceAccount = JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, "base64").toString("utf8"));
-
-if (!admin.apps.length) {
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-    });
+// Service Account Key aus Umgebungsvariable lesen
+if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+    console.error("❌ Fehler: FIREBASE_SERVICE_ACCOUNT Umgebungsvariable fehlt. Setze sie in Vercel.");
+    process.exit(1);
 }
+
+const serviceAccount = JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, "base64").toString("utf8"));
 
 // Firebase-Admin mit Service Account initialisieren
 if (!admin.apps.length) {
