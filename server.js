@@ -86,19 +86,31 @@ app.post("/api/quiz", async (req, res) => {
     }
 });
 
-// Route für das Abrufen der Daten
+// Route für das Abrufen der Daten mit Timeout
 app.get("/api/data/:userId", async (req, res) => {
     try {
-        res.set("Access-Control-Allow-Origin", "*"); // Sicherstellen, dass CORS-Header gesetzt sind
+        res.set("Access-Control-Allow-Origin", "*");
         const userId = req.params.userId;
         const docRef = db.collection("quizErgebnisse").doc(userId);
-        const docSnap = await docRef.get();
+        
+        const fetchData = new Promise(async (resolve, reject) => {
+            try {
+                const docSnap = await docRef.get();
+                if (!docSnap.exists) {
+                    return resolve({ error: "Keine Daten gefunden" });
+                }
+                resolve(docSnap.data());
+            } catch (error) {
+                reject(error);
+            }
+        });
 
-        if (!docSnap.exists) {
-            return res.status(404).json({ error: "Keine Daten gefunden" });
-        }
+        const timeout = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error("Firestore Timeout")), 5000)
+        );
 
-        res.status(200).json(docSnap.data());
+        const result = await Promise.race([fetchData, timeout]);
+        res.status(200).json(result);
     } catch (error) {
         console.error("Fehler beim Abrufen der Daten:", error);
         res.status(500).json({ error: "Fehler beim Abrufen der Daten" });
