@@ -8,7 +8,7 @@ import { getFirestore } from "firebase-admin/firestore";
 dotenv.config();
 
 const corsOptions = {
-    origin: "https://junterbu.github.io", // Erlaube nur Anfragen von deiner GitHub Pages-Seite
+    origin: "*", // Erlaube Anfragen von überall, falls weiterhin CORS-Probleme bestehen
     methods: "GET,POST",
     allowedHeaders: "Content-Type"
 };
@@ -24,6 +24,11 @@ const db = getFirestore();
 const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// Test-Route für CORS-Probleme
+app.get("/test", (req, res) => {
+    res.json({ message: "CORS funktioniert!" });
+});
 
 // Route für das Speichern der Quiz-Daten
 app.post("/api/quiz", async (req, res) => {
@@ -76,6 +81,7 @@ app.get("/api/data/:userId", async (req, res) => {
             return res.status(404).json({ error: "Keine Daten gefunden" });
         }
 
+        res.set("Access-Control-Allow-Origin", "*"); // Manuelle CORS-Header setzen
         res.status(200).json(docSnap.data());
     } catch (error) {
         console.error("Fehler beim Abrufen der Daten:", error);
