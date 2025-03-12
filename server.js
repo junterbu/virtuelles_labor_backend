@@ -115,6 +115,7 @@ app.post("/api/quiz", async (req, res) => {
         if (!beantworteteRäume.includes(raum)) {
             const quizFragen = {
                 "Gesteinsraum": { antwort: "Sie zeigt an, dass gesetzliche Vorschriften eingehalten wurden", punkte: 10 },
+                "Gesteinsraum_2": {antwort: "Rohdichte", punkte: 10},
                 "Mischer": { antwort: "Um die normgemäßen Anforderungen an das Mischgut zu überprüfen", punkte: 10 },
                 "Marshall": { antwort: "Durch Erstellen einer Polynomfunktion und Finden des Maximums der Raumdichten", punkte: 10 }
             };
