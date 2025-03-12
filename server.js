@@ -120,7 +120,7 @@ app.post("/api/quiz", async (req, res) => {
                 "Marshall": { antwort: "Durch Erstellen einer Polynomfunktion und Finden des Maximums der Raumdichten", punkte: 10 },
                 "Pyknometer": { antwort: "Masse des Pyknometers mit Aufsatz, Feder und Laborprobe", punkte: 10 },
                 "Hohlraumgehalt": { antwort: "Ab 10%", punkte: 10 },
-                "ÖNORM EN 12697-8": {antwort: "10M%", punkte: 10},
+                "ÖNORM EN 12697-8": {antwort: "Aus der Differenz von Raumdichte und Rohdichte", punkte: 10},
                 "NaBe": {antwort: "10M%", punkte: 10}
             };
 
