@@ -100,39 +100,50 @@ app.get("/api/data/:userId", async (req, res) => {
 
 app.post("/api/quiz", async (req, res) => {
     try {
+        console.log("📥 Quiz-POST-Anfrage empfangen:", req.body);
+
         const { userId, raum, auswahl } = req.body;
+        if (!userId || !raum || !auswahl) {
+            return res.status(400).json({ error: "Fehlende Parameter in der Anfrage" });
+        }
+
         const docRef = db.collection("quizErgebnisse").doc(userId);
         const docSnap = await docRef.get();
 
         let quizPunkteNeu = 0;
-        let beantworteteRäume = [];
-
+        let beantworteteRäume = {};
+        
         if (docSnap.exists) {
-            beantworteteRäume = docSnap.data().beantworteteRäume || [];
+            beantworteteRäume = docSnap.data().beantworteteRäume || {};
             quizPunkteNeu = docSnap.data().punkte || 0;
         }
 
-        if (!beantworteteRäume.includes(raum)) {
-            const quizFragen = {
-                "Gesteinsraum": { antwort: "Sie zeigt an, dass gesetzliche Vorschriften eingehalten wurden", punkte: 10 },
-                "Gesteinsraum_2": {antwort: "Rohdichte", punkte: 10},
-                "Mischer": { antwort: "Um die normgemäßen Anforderungen an das Mischgut zu überprüfen", punkte: 10 },
-                "Marshall": { antwort: "Durch Erstellen einer Polynomfunktion und Finden des Maximums der Raumdichten", punkte: 10 }
-            };
+        const quizFragen = {
+            "Gesteinsraum": { antwort: "Sie zeigt an, dass gesetzliche Vorschriften eingehalten wurden", punkte: 10 },
+            "Gesteinsraum_2": { antwort: "Rohdichte", punkte: 10 },
+            "Mischer": { antwort: "Um die normgemäßen Anforderungen an das Mischgut zu überprüfen", punkte: 10 },
+            "Marshall": { antwort: "Durch Erstellen einer Polynomfunktion und Finden des Maximums der Raumdichten", punkte: 10 }
+        };
 
+        // Falls die Frage noch nicht beantwortet wurde, speichern
+        if (!beantworteteRäume[raum]) {
             if (quizFragen[raum]?.antwort === auswahl) {
                 quizPunkteNeu += quizFragen[raum].punkte;
             }
-            beantworteteRäume.push(raum);
+            beantworteteRäume[raum] = true; // Speichert jede Frage einzeln
         } else {
-            console.warn(`⚠️ ${raum} wurde bereits beantwortet – wird nicht erneut gespeichert.`);
+            console.warn(`⚠️ ${raum} wurde bereits beantwortet.`);
         }
 
-        await docRef.set({ punkte: quizPunkteNeu, beantworteteRäume });
+        await docRef.set({
+            punkte: quizPunkteNeu,
+            beantworteteRäume
+        });
 
+        console.log("✅ Quiz-Daten erfolgreich gespeichert:", { punkte: quizPunkteNeu, beantworteteRäume });
         res.status(200).json({ message: "Quiz-Daten gespeichert!", punkte: quizPunkteNeu });
     } catch (error) {
-        console.error("Fehler beim Speichern der Quiz-Daten:", error);
+        console.error("❌ Fehler beim Speichern der Quiz-Daten:", error);
         res.status(500).json({ error: "Fehler beim Speichern der Quiz-Daten" });
     }
 });
