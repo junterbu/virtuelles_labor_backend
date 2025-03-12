@@ -121,7 +121,10 @@ app.post("/api/quiz", async (req, res) => {
                 "Pyknometer": { antwort: "Masse des Pyknometers mit Aufsatz, Feder und Laborprobe", punkte: 10 },
                 "Hohlraumgehalt": { antwort: "Ab 10%", punkte: 10 },
                 "ÖNORM EN 12697-8": {antwort: "Aus der Differenz von Raumdichte und Rohdichte", punkte: 10},
-                "NaBe": {antwort: "10M%", punkte: 10}
+                "NaBe": {antwort: "10M%", punkte: 10},
+                "WPK": {antwort: "Zur Qualitätssicherung während der Produktion in Eigenüberwachung", punkte: 10},
+                "Grenzsieblinie": {antwort: "In den Produktanforderungen für Asphaltmischgut (ÖNORM B 358x-x)", punkte:10},
+                "Raumdichte": {antwort: "Verfahren A: Raumdichte — trocken und Verfahren B: Raumdichte — SSD ", punkte:10}
             };
 
             if (quizFragen[raum]?.antwort === auswahl) {
