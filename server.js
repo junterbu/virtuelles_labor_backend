@@ -117,7 +117,11 @@ app.post("/api/quiz", async (req, res) => {
                 "Gesteinsraum": { antwort: "Sie zeigt an, dass gesetzliche Vorschriften eingehalten wurden", punkte: 10 },
                 "Rohdichte": {antwort: "Rohdichte", punkte: 10},
                 "Mischer": { antwort: "Um die normgemäßen Anforderungen an das Mischgut zu überprüfen", punkte: 10 },
-                "Marshall": { antwort: "Durch Erstellen einer Polynomfunktion und Finden des Maximums der Raumdichten", punkte: 10 }
+                "Marshall": { antwort: "Durch Erstellen einer Polynomfunktion und Finden des Maximums der Raumdichten", punkte: 10 },
+                "Pyknometer": { antwort: "Masse des Pyknometers mit Aufsatz, Feder und Laborprobe", punkte: 10 },
+                "Hohlraumgehalt": { antwort: "Ab 10%", punkte: 10 },
+                "ÖNORM EN 12697-8": {antwort: "10M%", punkte: 10},
+                "NaBe": {antwort: "10M%", punkte: 10}
             };
 
             if (quizFragen[raum]?.antwort === auswahl) {
