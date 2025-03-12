@@ -160,6 +160,31 @@ app.get("/api/punkte/:userId", async (req, res) => {
     }
 });
 
+// Route: Fragen für einen Studenten abrufen oder generieren
+app.get("/api/quizfragen/:userId", async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const docRef = db.collection("quizFragen").doc(userId);
+        const docSnap = await docRef.get();
+
+        // Wenn der Student bereits Fragen hat, zurücksenden
+        if (docSnap.exists) {
+            return res.status(200).json({ fragen: docSnap.data().fragen });
+        }
+
+        // Wenn keine Fragen gespeichert sind, zufällige Fragen auswählen
+        const alleFragen = Object.keys(quizFragen);
+        const zufallsFragen = alleFragen.sort(() => 0.5 - Math.random()).slice(5); // 5 zufällige Fragen
+
+        await docRef.set({ fragen: zufallsFragen });
+        return res.status(200).json({ fragen: zufallsFragen });
+
+    } catch (error) {
+        console.error("Fehler beim Abrufen der Fragen:", error);
+        res.status(500).json({ error: "Fehler beim Abrufen der Fragen" });
+    }
+});
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server läuft auf Port ${PORT}`));
