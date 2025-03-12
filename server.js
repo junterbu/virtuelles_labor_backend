@@ -124,6 +124,8 @@ app.post("/api/quiz", async (req, res) => {
                 quizPunkteNeu += quizFragen[raum].punkte;
             }
             beantworteteRäume.push(raum);
+        } else {
+            console.warn(`⚠️ ${raum} wurde bereits beantwortet – wird nicht erneut gespeichert.`);
         }
 
         await docRef.set({ punkte: quizPunkteNeu, beantworteteRäume });
