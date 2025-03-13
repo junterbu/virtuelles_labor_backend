@@ -291,9 +291,9 @@ app.post("/api/sendEmail", async (req, res) => {
         let mailOptions = {
             from: process.env.EMAIL_USER,
             to: "jan.unterbuchschachner@tuwien.ac.at",
-            subject: `📄 Laborbericht von ${userId}`,
-            text: `Hier ist der Laborbericht von ${userId}`,
-            attachments: [{ filename: `Laborbericht_${userId}.pdf`, content: pdfFile.data }]
+            subject: `📄 Prüfbericht von ${userId}`,
+            text: `Hier ist der Prüfbericht von ${userId}`,
+            attachments: [{ filename: `Prüfbericht_${userId}.pdf`, content: pdfFile.data }]
         };
 
         await transporter.sendMail(mailOptions);
