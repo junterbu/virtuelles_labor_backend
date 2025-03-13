@@ -271,22 +271,22 @@ app.get("/api/quizErgebnisse/:userId", async (req, res) => {
 app.post("/api/uploadPDF", async (req, res) => {
     try {
         console.log("📥 PDF-Upload angefordert...");
-        const userId = req.body.userId;
 
-        // 🔥 Fix: Prüfen, ob PDF-File existiert
-        if (!req.files || !req.files.pdf) {
+        // 🔥 Sicherstellen, dass eine Datei gesendet wurde
+        if (!req.files || Object.keys(req.files).length === 0) {
             console.error("❌ Kein PDF erhalten!");
             return res.status(400).json({ error: "Kein PDF gefunden" });
         }
 
+        const userId = req.body.userId;
         const pdfFile = req.files.pdf;
 
-        // 📧 Mailer einrichten (Gmail SMTP oder andere Dienste)
+        // 📧 Mailer einrichten
         let transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
-                user: process.env.EMAIL_USER, // 🔥 Deine E-Mail aus `.env`
-                pass: process.env.EMAIL_PASS  // 🔥 App-Passwort von Gmail
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
             }
         });
 
