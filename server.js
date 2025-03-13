@@ -6,7 +6,7 @@ import { getFirestore } from "firebase-admin/firestore";
 const nodemailer = await import("nodemailer")
 const fileUpload = await import("express-fileupload");
 
-app.use(fileUpload());
+
 // .env Datei laden
 dotenv.config();
 
@@ -56,6 +56,7 @@ const db = getFirestore();
 const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(fileUpload());
 
 // Middleware für CORS, falls Vercel Header entfernt
 app.use((req, res, next) => {
@@ -269,8 +270,12 @@ app.get("/api/quizErgebnisse/:userId", async (req, res) => {
 
 app.post("/api/uploadPDF", async (req, res) => {
     try {
+        console.log("📥 PDF-Upload angefordert...");
         const userId = req.body.userId;
+
+        // 🔥 Fix: Prüfen, ob PDF-File existiert
         if (!req.files || !req.files.pdf) {
+            console.error("❌ Kein PDF erhalten!");
             return res.status(400).json({ error: "Kein PDF gefunden" });
         }
 
@@ -280,8 +285,8 @@ app.post("/api/uploadPDF", async (req, res) => {
         let transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
-                user: process.env.EMAIL_USER, // z. B. deine Gmail-Adresse
-                pass: process.env.EMAIL_PASS  // App-Passwort von Gmail
+                user: process.env.EMAIL_USER, // 🔥 Deine E-Mail aus `.env`
+                pass: process.env.EMAIL_PASS  // 🔥 App-Passwort von Gmail
             }
         });
 
