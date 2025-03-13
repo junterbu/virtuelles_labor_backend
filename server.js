@@ -293,7 +293,7 @@ app.post("/api/sendEmail", async (req, res) => {
             to: "jan.unterbuchschachner@tuwien.ac.at",
             subject: `📄 Laborbericht von ${userId}`,
             text: `Hier ist der Laborbericht von ${userId}`,
-            attachments: [{ filename: "Laborbericht.pdf", content: pdfFile.data }]
+            attachments: [{ filename: `Laborbericht_${userId}.pdf`, content: pdfFile.data }]
         };
 
         await transporter.sendMail(mailOptions);
