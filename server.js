@@ -184,7 +184,7 @@ app.get("/api/quizfragen/:userId", async (req, res) => {
         // Falls der Nutzer bereits Fragen hat, zurückgeben
         if (docSnap.exists) {
             return res.status(200).json({ fragen: docSnap.data().fragen });
-        }
+        } 
 
         // Falls noch keine Fragen gespeichert sind, 8 zufällige Fragen auswählen
         const alleFragen = [
@@ -227,6 +227,36 @@ app.get("/api/beantworteteFragen/:userId", async (req, res) => {
         res.status(500).json({ error: "Fehler beim Abrufen der beantworteten Fragen" });
     }
 });
+
+app.get("/api/quizErgebnisse/:userId", async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const docRef = db.collection("quizErgebnisse").doc(userId);
+        const docSnap = await docRef.get();
+
+        if (!docSnap.exists) {
+            return res.status(404).json({ ergebnisse: [] });
+        }
+
+        const gespeicherteDaten = docSnap.data();
+        const beantworteteRäume = gespeicherteDaten.beantworteteRäume || [];
+        const quizPunkte = gespeicherteDaten.punkte || 0;
+
+        // Quizfragen-Daten mit richtigen Antworten ergänzen
+        const quizDaten = beantworteteRäume.map(raum => ({
+            frage: raum,
+            gegebeneAntwort: gespeicherteDaten[raum] || "Unbekannt",
+            richtigeAntwort: quizFragen.find(q => q === raum) ? quizFragen[raum]?.antwort : "Nicht gefunden",
+            punkte: quizFragen[raum]?.punkte || 0
+        }));
+
+        res.status(200).json({ ergebnisse: quizDaten, gesamtPunkte: quizPunkte });
+    } catch (error) {
+        console.error("Fehler beim Abrufen der Quiz-Ergebnisse:", error);
+        res.status(500).json({ error: "Fehler beim Abrufen der Quiz-Ergebnisse" });
+    }
+});
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server läuft auf Port ${PORT}`));
