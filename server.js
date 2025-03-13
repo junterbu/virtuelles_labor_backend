@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
-import nodemailer from "nodemailer";
+const nodemailer = require("nodemailer");
 
 // .env Datei laden
 dotenv.config();
