@@ -14,18 +14,18 @@ const corsOptions = {
 };
 
 const quizFragen = [
-        "Gesteinsraum",
-        "Rohdichte",
-        "Mischer",
-        "Marshall",
-        "Pyknometer",
-        "Hohlraumgehalt",
-        "ÖNORM EN 12697-8",
-        "NaBe",
-        "WPK",
-        "Grenzsieblinien",
-        "Raumdichte"
-    ]
+    "Gesteinsraum",
+    "Rohdichte",
+    "Mischer",
+    "Marshall",
+    "Pyknometer",
+    "Hohlraumgehalt",
+    "ÖNORM EN 12697-8",
+    "NaBe",
+    "WPK",
+    "Grenzsieblinien",
+    "Raumdichte"
+]
 
 
 // Service Account Key aus Umgebungsvariable lesen
