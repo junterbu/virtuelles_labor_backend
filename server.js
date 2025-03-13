@@ -187,7 +187,19 @@ app.get("/api/quizfragen/:userId", async (req, res) => {
         }
 
         // Falls noch keine Fragen gespeichert sind, 8 zufällige Fragen auswählen
-        const alleFragen = Object.keys(quizFragen);
+        const alleFragen = [
+            "Gesteinsraum",
+            "Rohdichte",
+            "Mischer",
+            "Marshall",
+            "Pyknometer",
+            "Hohlraumgehalt",
+            "ÖNORM EN 12697-8",
+            "NaBe",
+            "WPK",
+            "Grenzsieblinien",
+            "Raumdichte"
+        ];
         const zufallsFragen = alleFragen.sort(() => Math.random() - 0.5).slice(0, 8); // Wähle 8 zufällige Fragen
 
         await docRef.set({ fragen: zufallsFragen });
