@@ -4,10 +4,10 @@ import dotenv from "dotenv";
 import admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
-
+import fileUpload from "express-fileupload"; 
 // .env Datei laden
 dotenv.config();
-
+app.use(fileUpload());
 const corsOptions = {
     origin: "*", // Erlaube Anfragen von überall
     methods: "GET,POST,OPTIONS",
@@ -268,15 +268,19 @@ app.get("/api/quizErgebnisse/:userId", async (req, res) => {
 
 app.post("/api/uploadPDF", async (req, res) => {
     try {
+        console.log("📥 PDF-Upload angefordert...");
+
         const userId = req.body.userId;
         if (!req.files || !req.files.pdf) {
+            console.error("❌ Kein PDF erhalten!");
             return res.status(400).json({ error: "Kein PDF gefunden" });
         }
 
         const pdfFile = req.files.pdf;
-        const bucket = storage.bucket(); // Standard-Bucket von Firebase Storage
+        const bucket = storage.bucket();
         const filePath = `laborberichte/${userId}.pdf`;
 
+        // Datei speichern
         await bucket.file(filePath).save(pdfFile.data, {
             metadata: { contentType: "application/pdf" }
         });
