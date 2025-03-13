@@ -268,9 +268,9 @@ app.get("/api/quizErgebnisse/:userId", async (req, res) => {
     }
 });
 
-app.post("/api/uploadPDF", async (req, res) => {
+app.post("/api/sendEmail", async (req, res) => {
     try {
-        console.log("📥 PDF-Upload angefordert...");
+        console.log("📧 E-Mail-Versand angefordert...");
 
         if (!req.files || !req.files.pdf) {
             console.error("❌ Kein PDF erhalten!");
