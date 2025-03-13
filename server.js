@@ -184,21 +184,20 @@ app.get("/api/punkte/:userId", async (req, res) => {
     }
 });
 
-// Route: Fragen für einen Studenten abrufen oder generieren
 app.get("/api/quizfragen/:userId", async (req, res) => {
     try {
         const userId = req.params.userId;
         const docRef = db.collection("quizFragen").doc(userId);
         const docSnap = await docRef.get();
 
-        // Falls Fragen bereits existieren, zurückgeben
+        // Falls der Nutzer bereits Fragen hat, zurückgeben
         if (docSnap.exists) {
             return res.status(200).json({ fragen: docSnap.data().fragen });
         }
 
-        // Falls noch keine Fragen gespeichert sind, 5 zufällige Fragen auswählen
+        // Falls noch keine Fragen gespeichert sind, 8 zufällige Fragen auswählen
         const alleFragen = Object.keys(quizFragen);
-        const zufallsFragen = alleFragen.sort(() => 0.5 - Math.random()).slice(5); // 5 zufällige Fragen
+        const zufallsFragen = alleFragen.sort(() => 0.5 - Math.random()).slice(8); // Wähle 8 zufällige Fragen
 
         await docRef.set({ fragen: zufallsFragen });
         return res.status(200).json({ fragen: zufallsFragen });
