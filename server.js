@@ -209,6 +209,22 @@ app.get("/api/quizfragen/:userId", async (req, res) => {
     }
 });
 
+app.get("/api/beantworteteFragen/:userId", async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const docRef = db.collection("quizErgebnisse").doc(userId);
+        const docSnap = await docRef.get();
+
+        if (!docSnap.exists) {
+            return res.status(200).json({ fragen: [] });
+        }
+
+        res.status(200).json({ fragen: docSnap.data().beantworteteRäume || [] });
+    } catch (error) {
+        console.error("Fehler beim Abrufen der beantworteten Fragen:", error);
+        res.status(500).json({ error: "Fehler beim Abrufen der beantworteten Fragen" });
+    }
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server läuft auf Port ${PORT}`));
