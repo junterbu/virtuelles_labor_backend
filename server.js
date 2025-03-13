@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 const nodemailer = await import("nodemailer")
-const fileUpload = await import("express-fileupload");
+import fileUpload from "express-fileupload";
 
 
 // .env Datei laden
