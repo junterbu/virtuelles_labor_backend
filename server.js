@@ -3,11 +3,11 @@ import cors from "cors";
 import dotenv from "dotenv";
 import admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
-import fileUpload from "express-fileupload"; 
+import nodemailer from "nodemailer";
+
 // .env Datei laden
 dotenv.config();
-app.use(fileUpload());
+
 const corsOptions = {
     origin: "*", // Erlaube Anfragen von überall
     methods: "GET,POST,OPTIONS",
@@ -268,28 +268,36 @@ app.get("/api/quizErgebnisse/:userId", async (req, res) => {
 
 app.post("/api/uploadPDF", async (req, res) => {
     try {
-        console.log("📥 PDF-Upload angefordert...");
-
         const userId = req.body.userId;
         if (!req.files || !req.files.pdf) {
-            console.error("❌ Kein PDF erhalten!");
             return res.status(400).json({ error: "Kein PDF gefunden" });
         }
 
         const pdfFile = req.files.pdf;
-        const bucket = storage.bucket();
-        const filePath = `laborberichte/${userId}.pdf`;
 
-        // Datei speichern
-        await bucket.file(filePath).save(pdfFile.data, {
-            metadata: { contentType: "application/pdf" }
+        // 📧 Mailer einrichten (Gmail SMTP oder andere Dienste)
+        let transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: process.env.EMAIL_USER, // z. B. deine Gmail-Adresse
+                pass: process.env.EMAIL_PASS  // App-Passwort von Gmail
+            }
         });
 
-        console.log(`✅ PDF gespeichert unter: ${filePath}`);
-        res.status(200).json({ message: "PDF erfolgreich gespeichert", path: filePath });
+        let mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: "jan.unterbuchschachner@tuwien.ac.at",
+            subject: `📄 Laborbericht von ${userId}`,
+            text: `Hier ist der Laborbericht von ${userId}`,
+            attachments: [{ filename: "Laborbericht.pdf", content: pdfFile.data }]
+        };
+
+        await transporter.sendMail(mailOptions);
+        console.log(`✅ E-Mail mit PDF gesendet an: jan.unterbuchschachner@tuwien.ac.at`);
+        res.status(200).json({ message: "E-Mail mit PDF gesendet" });
     } catch (error) {
-        console.error("❌ Fehler beim Speichern des PDFs:", error);
-        res.status(500).json({ error: "Fehler beim Speichern des PDFs" });
+        console.error("❌ Fehler beim E-Mail-Versand:", error);
+        res.status(500).json({ error: "Fehler beim Senden der E-Mail" });
     }
 });
 
