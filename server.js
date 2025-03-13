@@ -280,7 +280,6 @@ app.post("/api/sendEmail", async (req, res) => {
         const userId = req.body.userId;
         const pdfFile = req.files.pdf;
 
-        // 📧 Mailer einrichten
         let transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
@@ -300,9 +299,13 @@ app.post("/api/sendEmail", async (req, res) => {
         await transporter.sendMail(mailOptions);
         console.log(`✅ E-Mail mit PDF gesendet an: jan.unterbuchschachner@tuwien.ac.at`);
         res.status(200).json({ message: "E-Mail mit PDF gesendet" });
+
     } catch (error) {
         console.error("❌ Fehler beim E-Mail-Versand:", error);
-        res.status(500).json({ error: "Fehler beim Senden der E-Mail" });
+        res.status(500).json({ 
+            error: "Fehler beim Senden der E-Mail", 
+            details: error.toString() // 🔥 Fehlerdetails ausgeben
+        });
     }
 });
 
