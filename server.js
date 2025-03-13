@@ -120,35 +120,46 @@ app.post("/api/quiz", async (req, res) => {
         const docSnap = await docRef.get();
 
         let quizPunkteNeu = 0;
-        let beantworteteRäume = [];
+        let beantworteteFragen = [];
 
         if (docSnap.exists) {
-            beantworteteRäume = docSnap.data().beantworteteRäume || [];
+            beantworteteFragen = docSnap.data().beantworteteFragen || [];
             quizPunkteNeu = docSnap.data().punkte || 0;
         }
 
-        if (!beantworteteRäume.includes(raum)) {
-            const quizFragen = {
-                "Gesteinsraum": { antwort: "Sie zeigt an, dass gesetzliche Vorschriften eingehalten wurden", punkte: 10 },
-                "Rohdichte": {antwort: "Rohdichte", punkte: 10},
-                "Mischer": { antwort: "Um die normgemäßen Anforderungen an das Mischgut zu überprüfen", punkte: 10 },
-                "Marshall": { antwort: "Durch Erstellen einer Polynomfunktion und Finden des Maximums der Raumdichten", punkte: 10 },
-                "Pyknometer": { antwort: "Masse des Pyknometers mit Aufsatz, Feder und Laborprobe", punkte: 10 },
-                "Hohlraumgehalt": { antwort: "Ab 10%", punkte: 10 },
-                "ÖNORM EN 12697-8": {antwort: "Aus der Differenz von Raumdichte und Rohdichte", punkte: 10},
-                "NaBe": {antwort: "10M%", punkte: 10},
-                "WPK": {antwort: "Zur Qualitätssicherung während der Produktion in Eigenüberwachung", punkte: 10},
-                "Grenzsieblinie": {antwort: "In den Produktanforderungen für Asphaltmischgut (ÖNORM B 358x-x)", punkte:10},
-                "Raumdichte": {antwort: "Verfahren A: Raumdichte — trocken und Verfahren B: Raumdichte — SSD ", punkte:10}
+        if (!beantworteteFragen.some(q => q.raum === raum)) {
+            const quizDaten = {
+                "Gesteinsraum": { frage: "Welche Aussage zur CE-Kennzeichnung von Asphaltmischgut ist korrekt?", antwort: "Sie zeigt an, dass gesetzliche Vorschriften eingehalten wurden", punkte: 10 },
+                "Mischer": { frage: "Warum ist eine Typprüfung von Asphaltmischgut notwendig?", antwort: "Um die normgemäßen Anforderungen an das Mischgut zu überprüfen", punkte: 10 },
+                "Marshall": { frage: "Wie wird der optimale Bindemittelgehalt eines Asphaltmischguts ermittelt?", antwort: "Durch Erstellen einer Polynomfunktion und Finden des Maximums der Raumdichten", punkte: 10 },
+                "Rohdichte": { frage: "Mit welchem volumetrischen Kennwert wird die maximale Dichte eines Asphaltmischguts ohne Hohlräume beschrieben?", antwort: "Rohdichte", punkte: 10 },
+                "Pyknometer": { frage: "Wofür steht die Masse m_2 im Volumetrischen Verfahren zur Ermittlung der Rohdichte nach ÖNORM EN 12697-8?", antwort: "Masse des Pyknometers mit Aufsatz, Feder und Laborprobe", punkte: 10 },
+                "Hohlraumgehalt": { frage: "Ab wie viel % Hohlraumgehalt ist Verfahren D: Raumdichte durch Ausmessen der ÖNORM EN 12697-6 empfohlen?", antwort: "Ab 10%", punkte: 10 },
+                "ÖNORM EN 12697-8": { frage: "Wie wird der Hohlraumgehalt eines Probekörpers nach ÖNORM EN 12697-8 ermittelt?", antwort: "Aus der Differenz von Raumdichte und Rohdichte", punkte: 10 },
+                "NaBe": { frage: "Wie viele Recyclingasphalt muss ein Asphaltmischgut gemäß „Aktionsplan nachhaltige öffentlichen Beschaffung (naBe)“ mindestens enthalten?", antwort: "10M%", punkte: 10 },
+                "WPK": { frage: "Wozu dient die Werkseigene Produktionskontrolle (WPK)?", antwort: "Zur Qualitätssicherung während der Produktion in Eigenüberwachung", punkte: 10 },
+                "Grenzsieblinien": { frage: "Wo findet man Grenzsieblinien von Asphaltmischgütern?", antwort: "In den Produktanforderungen für Asphaltmischgut (ÖNORM B 358x-x)", punkte: 10 }
             };
 
-            if (quizFragen[raum]?.antwort === auswahl) {
-                quizPunkteNeu += quizFragen[raum].punkte;
+            let punkte = 0;
+            if (quizDaten[raum]?.antwort === auswahl) {
+                punkte = quizDaten[raum].punkte;
+                quizPunkteNeu += punkte;
             }
-            beantworteteRäume.push(raum);
+
+            beantworteteFragen.push({
+                raum: raum,
+                frage: quizDaten[raum]?.frage || "Unbekannte Frage",
+                gegebeneAntwort: auswahl,
+                richtigeAntwort: quizDaten[raum]?.antwort || "Keine Daten",
+                punkte: punkte
+            });
         }
 
-        await docRef.set({ punkte: quizPunkteNeu, beantworteteRäume });
+        await docRef.set({
+            punkte: quizPunkteNeu,
+            beantworteteFragen: beantworteteFragen
+        });
 
         res.status(200).json({ message: "Quiz-Daten gespeichert!", punkte: quizPunkteNeu });
     } catch (error) {
@@ -156,6 +167,7 @@ app.post("/api/quiz", async (req, res) => {
         res.status(500).json({ error: "Fehler beim Speichern der Quiz-Daten" });
     }
 });
+
 
 // API-Route zum Abrufen der Punkte für einen Benutzer
 app.get("/api/punkte/:userId", async (req, res) => {
@@ -239,18 +251,12 @@ app.get("/api/quizErgebnisse/:userId", async (req, res) => {
         }
 
         const gespeicherteDaten = docSnap.data();
-        const beantworteteRäume = gespeicherteDaten.beantworteteRäume || [];
-        const quizPunkte = gespeicherteDaten.punkte || 0;
+        const beantworteteFragen = gespeicherteDaten.beantworteteFragen || [];
 
-        // Quizfragen-Daten mit richtigen Antworten ergänzen
-        const quizDaten = beantworteteRäume.map(raum => ({
-            frage: raum,
-            gegebeneAntwort: gespeicherteDaten[raum] || "Unbekannt",
-            richtigeAntwort: quizFragen.find(q => q === raum) ? quizFragen[raum]?.antwort : "Nicht gefunden",
-            punkte: quizFragen[raum]?.punkte || 0
-        }));
-
-        res.status(200).json({ ergebnisse: quizDaten, gesamtPunkte: quizPunkte });
+        res.status(200).json({
+            ergebnisse: beantworteteFragen,
+            gesamtPunkte: gespeicherteDaten.punkte || 0
+        });
     } catch (error) {
         console.error("Fehler beim Abrufen der Quiz-Ergebnisse:", error);
         res.status(500).json({ error: "Fehler beim Abrufen der Quiz-Ergebnisse" });
