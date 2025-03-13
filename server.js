@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
-const nodemailer = await import("nodemailer")
+import nodemailer from "nodemailer";
 import fileUpload from "express-fileupload";
 
 
@@ -272,8 +272,7 @@ app.post("/api/uploadPDF", async (req, res) => {
     try {
         console.log("📥 PDF-Upload angefordert...");
 
-        // 🔥 Sicherstellen, dass eine Datei gesendet wurde
-        if (!req.files || Object.keys(req.files).length === 0) {
+        if (!req.files || !req.files.pdf) {
             console.error("❌ Kein PDF erhalten!");
             return res.status(400).json({ error: "Kein PDF gefunden" });
         }
