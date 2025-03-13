@@ -54,7 +54,6 @@ const db = getFirestore();
 const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
-const storage = getStorage();
 
 // Middleware für CORS, falls Vercel Header entfernt
 app.use((req, res, next) => {
