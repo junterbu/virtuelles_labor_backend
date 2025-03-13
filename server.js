@@ -138,7 +138,8 @@ app.post("/api/quiz", async (req, res) => {
                 "ÖNORM EN 12697-8": { frage: "Wie wird der Hohlraumgehalt eines Probekörpers nach ÖNORM EN 12697-8 ermittelt?", antwort: "Aus der Differenz von Raumdichte und Rohdichte", punkte: 10 },
                 "NaBe": { frage: "Wie viele Recyclingasphalt muss ein Asphaltmischgut gemäß „Aktionsplan nachhaltige öffentlichen Beschaffung (naBe)“ mindestens enthalten?", antwort: "10M%", punkte: 10 },
                 "WPK": { frage: "Wozu dient die Werkseigene Produktionskontrolle (WPK)?", antwort: "Zur Qualitätssicherung während der Produktion in Eigenüberwachung", punkte: 10 },
-                "Grenzsieblinien": { frage: "Wo findet man Grenzsieblinien von Asphaltmischgütern?", antwort: "In den Produktanforderungen für Asphaltmischgut (ÖNORM B 358x-x)", punkte: 10 }
+                "Grenzsieblinien": { frage: "Wo findet man Grenzsieblinien von Asphaltmischgütern?", antwort: "In den Produktanforderungen für Asphaltmischgut (ÖNORM B 358x-x)", punkte: 10 },
+                "Raumdichte": {frage: "Welche Verfahren zur Bestimmung der Raumdichte von Asphaltprobekörpern nach ÖNORM EN 12697-6 sind für dichte Probekörper bis etwa 7% Hohlraumgehalt geeignet?", antwort: "Verfahren A: Raumdichte — trocken und Verfahren B: Raumdichte — SSD ", punkte: 10 }
             };
 
             let punkte = 0;
