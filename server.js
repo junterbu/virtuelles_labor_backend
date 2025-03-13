@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 
 // .env Datei laden
 dotenv.config();
@@ -53,6 +54,7 @@ const db = getFirestore();
 const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
+const storage = getStorage();
 
 // Middleware für CORS, falls Vercel Header entfernt
 app.use((req, res, next) => {
@@ -264,6 +266,28 @@ app.get("/api/quizErgebnisse/:userId", async (req, res) => {
     }
 });
 
+app.post("/api/uploadPDF", async (req, res) => {
+    try {
+        const userId = req.body.userId;
+        if (!req.files || !req.files.pdf) {
+            return res.status(400).json({ error: "Kein PDF gefunden" });
+        }
+
+        const pdfFile = req.files.pdf;
+        const bucket = storage.bucket(); // Standard-Bucket von Firebase Storage
+        const filePath = `laborberichte/${userId}.pdf`;
+
+        await bucket.file(filePath).save(pdfFile.data, {
+            metadata: { contentType: "application/pdf" }
+        });
+
+        console.log(`✅ PDF gespeichert unter: ${filePath}`);
+        res.status(200).json({ message: "PDF erfolgreich gespeichert", path: filePath });
+    } catch (error) {
+        console.error("❌ Fehler beim Speichern des PDFs:", error);
+        res.status(500).json({ error: "Fehler beim Speichern des PDFs" });
+    }
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server läuft auf Port ${PORT}`));
