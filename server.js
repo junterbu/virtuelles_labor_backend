@@ -286,24 +286,25 @@ app.post("/api/uploadPDF", async (req, res) => {
         console.log("📂 PDF-Upload angefordert...");
 
         if (!req.files || !req.files.pdf) {
-            return res.status(400).json({ error: "Kein PDF erhalten" });
+            return res.status(400).json({ error: "Kein PDF erhalten" }); // 🔥 Immer JSON zurückgeben
         }
 
         const pdfFile = req.files.pdf;
         console.log(`📄 Datei erhalten: ${pdfFile.name}, Größe: ${pdfFile.size} Bytes`);
 
-        // 🔥 Datei zu Vercel Blob hochladen
         const blob = await put(`laborberichte/${pdfFile.name}`, pdfFile.data, {
-            access: "public", // Datei öffentlich verfügbar machen
+            access: "public"
         });
 
         console.log(`✅ PDF gespeichert unter: ${blob.url}`);
         res.status(200).json({ message: "PDF erfolgreich gespeichert", url: blob.url });
+
     } catch (error) {
         console.error("❌ Fehler beim Speichern des PDFs:", error);
-        res.status(500).json({ error: "Fehler beim Speichern des PDFs", details: error.toString() });
+        res.status(500).json({ error: "Fehler beim Speichern des PDFs", details: error.toString() }); // 🔥 Immer JSON zurückgeben
     }
 });
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server läuft auf Port ${PORT}`));
