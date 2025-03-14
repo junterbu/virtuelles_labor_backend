@@ -60,11 +60,10 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: ["Content-Disposition"]
 }));
-app.use(express.json({ limit: "20mb" }));  // 🔥 Erlaubt größere JSON-Payloads
-app.use(express.urlencoded({ limit: "20mb", extended: true }));
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));  // 🔥 Erlaubt größere JSON-Payloads
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(fileUpload({
-    limits: { fileSize: 50 * 1024 * 1024 } // 🔥 Erlaubt bis zu 50 MB
+    limits: { fileSize: 52428800 } // 🔥 Erlaubt bis zu 50 MB
 }));
 
 // 🔥 Zusätzliche CORS-Header setzen, um sicherzustellen, dass sie nicht entfernt werden
@@ -73,6 +72,8 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
     res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Expose-Headers", "Content-Length");
+    res.setHeader("Content-Length", req.headers["content-length"] || "0");
 
     if (req.method === "OPTIONS") {
         console.log("🛑 Preflight-Anfrage erkannt. Antwort gesendet.");
@@ -283,15 +284,19 @@ app.get("/api/quizErgebnisse/:userId", async (req, res) => {
 
 app.post("/api/uploadPDF", async (req, res) => {
     try {
-        console.log("📂 PDF-Upload angefordert...");
+        console.log("📂 PDF-Upload gestartet...");
 
         if (!req.files || !req.files.pdf) {
-            console.error("❌ Kein PDF erhalten!");
             return res.status(400).json({ error: "Kein PDF erhalten" });
         }
 
         const pdfFile = req.files.pdf;
         console.log(`📄 Datei erhalten: ${pdfFile.name}, Größe: ${pdfFile.size} Bytes`);
+
+        // 🔥 Falls Datei größer als 10MB, stückweise hochladen
+        if (pdfFile.size > 10 * 1024 * 1024) {
+            console.warn("⚠️ Datei ist größer als 10MB - Eventuell Chunking nötig.");
+        }
 
         // 🔥 Datei in Vercel Blob speichern
         const blob = await put(`laborberichte/${pdfFile.name}`, pdfFile.data, {
@@ -303,8 +308,6 @@ app.post("/api/uploadPDF", async (req, res) => {
 
     } catch (error) {
         console.error("❌ Fehler beim Speichern des PDFs:", error);
-        
-        // 🔥 Immer JSON zurückgeben, selbst bei Fehlern
         res.status(500).json({ error: "Fehler beim Speichern des PDFs", details: error.toString() });
     }
 });
