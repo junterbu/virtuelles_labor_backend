@@ -8,6 +8,7 @@ import fileUpload from "express-fileupload";
 import {put} from "@vercel/blob";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from 'url';
 
 // .env Datei laden
 dotenv.config();
@@ -284,6 +285,9 @@ app.get("/api/quizErgebnisse/:userId", async (req, res) => {
     }
 });
 
+// __dirname für ES-Module setzen
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const UPLOAD_DIR = path.join(__dirname, "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) {
     fs.mkdirSync(UPLOAD_DIR);
