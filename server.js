@@ -322,7 +322,6 @@ app.post("/api/sendEmail", async (req, res) => {
     }
 });
 
-// 🔹 Route zum Speichern der Ergebnisse in Firestore + CSV
 app.post("/api/storeResults", async (req, res) => {
     try {
         const { userId, punkte, optimalerBitumengehalt, maximaleRaumdichte } = req.body;
@@ -341,7 +340,7 @@ app.post("/api/storeResults", async (req, res) => {
             timestamp: new Date()
         });
 
-        // Speichern in der CSV-Datei
+        // Speichern in der CSV-Datei im Vercel Blob Storage
         await appendToCSV(userId, punkte, optimalerBitumengehalt, maximaleRaumdichte);
 
         res.status(200).json({ message: "Ergebnisse gespeichert" });
