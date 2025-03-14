@@ -7,8 +7,11 @@ import nodemailer from "nodemailer";
 import fileUpload from "express-fileupload";
 import fs from "fs";
 import path from "path";
+import { put, get, list } from "@vercel/blob";
 
-const CSV_FILE_PATH = path.join("/tmp", "labor_ergebnisse.csv"); // Vercel Storage (temp-Ordner)
+const CSV_FILE_NAME = "labor_ergebnisse.csv"; // Name der Datei im Storage
+const STORAGE_BUCKET = "virtuelles-labor-pdf-storage"; // Dein Vercel Blob Storage
+
 
 
 // .env Datei laden
@@ -349,18 +352,31 @@ app.post("/api/storeResults", async (req, res) => {
 });
 
 async function appendToCSV(userId, punkte, optimalerBitumengehalt, maximaleRaumdichte) {
-    const neueZeile = `${userId},${punkte},${optimalerBitumengehalt},${maximaleRaumdichte},${new Date().toISOString()}\n`;
+    try {
+        let csvContent = "Matrikelnummer,Quiz-Punkte,Optimaler Bitumengehalt,Maximale Raumdichte,Datum\n";
 
-    // Falls CSV-Datei nicht existiert, erstelle sie mit Headern
-    if (!fs.existsSync(CSV_FILE_PATH)) {
-        const header = "Matrikelnummer,Quiz-Punkte,Optimaler Bitumengehalt,Maximale Raumdichte,Datum\n";
-        fs.writeFileSync(CSV_FILE_PATH, header, "utf8");
-        console.log("📄 Neue CSV-Datei erstellt.");
+        // Prüfen, ob die Datei bereits existiert
+        const blobs = await list({ prefix: CSV_FILE_NAME });
+        if (blobs.blobs.length > 0) {
+            // CSV-Datei existiert -> herunterladen
+            const existingCSV = await get(blobs.blobs[0].url);
+            csvContent = await existingCSV.text();
+        }
+
+        // Neue Zeile hinzufügen
+        const neueZeile = `${userId},${punkte},${optimalerBitumengehalt},${maximaleRaumdichte},${new Date().toISOString()}\n`;
+        csvContent += neueZeile;
+
+        // Aktualisierte CSV wieder hochladen
+        await put(CSV_FILE_NAME, csvContent, {
+            access: "private", // Nur für dich zugänglich
+            contentType: "text/csv",
+        });
+
+        console.log("✅ Neue Zeile zur CSV in Vercel Blob Storage hinzugefügt:", neueZeile);
+    } catch (error) {
+        console.error("❌ Fehler beim Speichern in Vercel Storage:", error);
     }
-
-    // Neue Zeile hinzufügen
-    fs.appendFileSync(CSV_FILE_PATH, neueZeile, "utf8");
-    console.log("✅ Neue Zeile zur CSV hinzugefügt:", neueZeile);
 }
 
 const PORT = process.env.PORT || 5000;
