@@ -1,7 +1,18 @@
 {
   "version": 2,
   "builds": [
-    { "src": "server.js", "use": "@vercel/node" }
+    { 
+      "src": "server.js", 
+      "use": "@vercel/node",
+      "config": {
+        "functions": {
+          "api/sendEmail": {
+            "maxDuration": 10,
+            "memory": 1024
+          }
+        }
+      }
+    }
   ],
   "rewrites": [
     { "source": "/(.*)", "destination": "server.js" }
@@ -16,12 +27,6 @@
         { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, Content-Length" }
       ]
     }
-  ],
-  "functions": {
-    "api/sendEmail": {
-      "maxDuration": 10,
-      "memory": 1024
-    }
-  }
+  ]
 }
 
