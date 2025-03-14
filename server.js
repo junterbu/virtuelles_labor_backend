@@ -7,7 +7,7 @@ import nodemailer from "nodemailer";
 import fileUpload from "express-fileupload";
 import fs from "fs";
 import path from "path";
-import { put, get, list } from "@vercel/blob";
+import { put, list } from "@vercel/blob";
 
 const CSV_FILE_NAME = "labor_ergebnisse.csv"; // Name der Datei im Storage
 const STORAGE_BUCKET = "virtuelles-labor-pdf-storage"; // Dein Vercel Blob Storage
@@ -340,7 +340,7 @@ app.post("/api/storeResults", async (req, res) => {
             timestamp: new Date()
         });
 
-        // Speichern in der CSV-Datei im Vercel Blob Storage
+        // Speichern in der CSV-Datei in Vercel Blob Storage
         await appendToCSV(userId, punkte, optimalerBitumengehalt, maximaleRaumdichte);
 
         res.status(200).json({ message: "Ergebnisse gespeichert" });
@@ -354,21 +354,23 @@ async function appendToCSV(userId, punkte, optimalerBitumengehalt, maximaleRaumd
     try {
         let csvContent = "Matrikelnummer,Quiz-Punkte,Optimaler Bitumengehalt,Maximale Raumdichte,Datum\n";
 
-        // Prüfen, ob die Datei bereits existiert
-        const blobs = await list({ prefix: CSV_FILE_NAME });
-        if (blobs.blobs.length > 0) {
-            // CSV-Datei existiert -> herunterladen
-            const existingCSV = await get(blobs.blobs[0].url);
-            csvContent = await existingCSV.text();
+        // Prüfen, ob die Datei existiert
+        const blobs = await list();
+        const existingBlob = blobs.blobs.find(blob => blob.pathname === CSV_FILE_NAME);
+
+        if (existingBlob) {
+            // Falls Datei existiert, lade den aktuellen Inhalt herunter
+            const response = await fetch(existingBlob.url);
+            csvContent = await response.text();
         }
 
         // Neue Zeile hinzufügen
         const neueZeile = `${userId},${punkte},${optimalerBitumengehalt},${maximaleRaumdichte},${new Date().toISOString()}\n`;
         csvContent += neueZeile;
 
-        // Aktualisierte CSV wieder hochladen
+        // Aktualisierte CSV-Datei hochladen
         await put(CSV_FILE_NAME, csvContent, {
-            access: "private", // Nur für dich zugänglich
+            access: "private",
             contentType: "text/csv",
         });
 
