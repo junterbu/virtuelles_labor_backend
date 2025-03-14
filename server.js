@@ -281,6 +281,8 @@ app.get("/api/quizErgebnisse/:userId", async (req, res) => {
     }
 });
 
+
+
 app.post("/api/uploadPDF", async (req, res) => {
     try {
         console.log("📂 PDF-Upload angefordert...");
