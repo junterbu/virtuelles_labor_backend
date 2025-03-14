@@ -282,33 +282,63 @@ app.get("/api/quizErgebnisse/:userId", async (req, res) => {
     }
 });
 
-app.post("/api/uploadPDF", async (req, res) => {
+const UPLOAD_DIR = path.join(__dirname, "uploads");
+if (!fs.existsSync(UPLOAD_DIR)) {
+    fs.mkdirSync(UPLOAD_DIR);
+}
+
+// 🔥 Route zum Hochladen von Datei-Chunks
+app.post("/api/uploadChunk", async (req, res) => {
     try {
-        console.log("📂 PDF-Upload gestartet...");
+        const { userId, fileName, chunkIndex, totalChunks } = req.body;
+        const chunk = req.files.chunk;
 
-        if (!req.files || !req.files.pdf) {
-            return res.status(400).json({ error: "Kein PDF erhalten" });
+        if (!chunk) {
+            return res.status(400).json({ error: "Kein Datei-Chunk erhalten" });
         }
 
-        const pdfFile = req.files.pdf;
-        console.log(`📄 Datei erhalten: ${pdfFile.name}, Größe: ${pdfFile.size} Bytes`);
+        const tempFilePath = path.join(UPLOAD_DIR, `${fileName}.part${chunkIndex}`);
+        await chunk.mv(tempFilePath);
+        console.log(`📂 Chunk ${chunkIndex + 1}/${totalChunks} gespeichert`);
 
-        // 🔥 Falls Datei größer als 10MB, stückweise hochladen
-        if (pdfFile.size > 10 * 1024 * 1024) {
-            console.warn("⚠️ Datei ist größer als 10MB - Eventuell Chunking nötig.");
+        res.status(200).json({ message: `Chunk ${chunkIndex + 1}/${totalChunks} gespeichert` });
+
+    } catch (error) {
+        console.error("❌ Fehler beim Speichern eines Chunks:", error);
+        res.status(500).json({ error: "Fehler beim Speichern eines Chunks" });
+    }
+});
+
+// 🔥 Route zum Zusammenfügen der Datei
+app.post("/api/mergeChunks", async (req, res) => {
+    try {
+        const { userId, fileName, totalChunks } = req.body;
+        const finalFilePath = path.join(UPLOAD_DIR, fileName);
+        const writeStream = fs.createWriteStream(finalFilePath);
+
+        for (let i = 0; i < totalChunks; i++) {
+            const chunkPath = path.join(UPLOAD_DIR, `${fileName}.part${i}`);
+            if (!fs.existsSync(chunkPath)) {
+                return res.status(400).json({ error: `Chunk ${i + 1} fehlt` });
+            }
+            const chunkData = fs.readFileSync(chunkPath);
+            writeStream.write(chunkData);
+            fs.unlinkSync(chunkPath); // 🔥 Löscht Chunk nach dem Zusammenfügen
         }
+        writeStream.end();
 
-        // 🔥 Datei in Vercel Blob speichern
-        const blob = await put(`laborberichte/${pdfFile.name}`, pdfFile.data, {
-            access: "public"
-        });
+        // 🔥 Datei in Vercel Blob hochladen
+        const fileData = fs.readFileSync(finalFilePath);
+        const blob = await put(`laborberichte/${fileName}`, fileData, { access: "public" });
 
-        console.log(`✅ PDF gespeichert unter: ${blob.url}`);
+        fs.unlinkSync(finalFilePath); // 🔥 Löscht die temporäre Datei nach dem Hochladen
+
+        console.log(`✅ PDF erfolgreich gespeichert: ${blob.url}`);
         res.status(200).json({ message: "PDF erfolgreich gespeichert", url: blob.url });
 
     } catch (error) {
-        console.error("❌ Fehler beim Speichern des PDFs:", error);
-        res.status(500).json({ error: "Fehler beim Speichern des PDFs", details: error.toString() });
+        console.error("❌ Fehler beim Zusammenfügen der Datei:", error);
+        res.status(500).json({ error: "Fehler beim Zusammenfügen der Datei" });
     }
 });
 
