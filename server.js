@@ -6,6 +6,8 @@ import { getFirestore } from "firebase-admin/firestore";
 import nodemailer from "nodemailer";
 import fileUpload from "express-fileupload";
 import {put} from "@vercel/blob";
+import path from "path";
+import fs from "fs";
 
 // .env Datei laden
 dotenv.config();
