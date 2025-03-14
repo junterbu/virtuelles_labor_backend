@@ -54,7 +54,12 @@ if (!admin.apps.length) {
 
 const db = getFirestore();
 const app = express();
-app.use(cors(corsOptions));
+app.use(cors({
+    origin: "*", // 🔥 Alle Domains erlauben
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["Content-Disposition"]
+}));
 app.use(express.json({ limit: "20mb" }));  // 🔥 Erlaubt größere JSON-Payloads
 app.use(express.urlencoded({ limit: "20mb", extended: true }));
 app.use(express.json());
@@ -62,6 +67,7 @@ app.use(fileUpload({
     limits: { fileSize: 15 * 1024 * 1024 } // 🔥 Erlaubt bis zu 15 MB
 }));
 
+// 🔥 Zusätzliche CORS-Header setzen, um sicherzustellen, dass sie nicht entfernt werden
 app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -69,7 +75,8 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Credentials", "true");
 
     if (req.method === "OPTIONS") {
-        return res.status(204).end();  // Sofortige Antwort auf Preflight-Anfragen
+        console.log("🛑 Preflight-Anfrage erkannt. Antwort gesendet.");
+        return res.status(204).end(); // OPTIONS-Request sofort beantworten
     }
 
     next();
