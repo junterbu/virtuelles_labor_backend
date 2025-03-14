@@ -315,5 +315,49 @@ app.post("/api/sendEmail", async (req, res) => {
     }
 });
 
+app.post("/api/storeResults", async (req, res) => {
+    try {
+        const { userId, punkte, optimalerBitumengehalt, maximaleRaumdichte } = req.body;
+
+        if (!userId || punkte === undefined || optimalerBitumengehalt === undefined || maximaleRaumdichte === undefined) {
+            return res.status(400).json({ error: "Fehlende Daten" });
+        }
+
+        const docRef = db.collection("laborErgebnisse").doc(userId);
+        await docRef.set({
+            userId,
+            punkte,
+            optimalerBitumengehalt,
+            maximaleRaumdichte,
+            timestamp: new Date()
+        });
+
+        console.log(`✅ Labor-Ergebnisse gespeichert für User: ${userId}`);
+        res.status(200).json({ message: "Ergebnisse gespeichert" });
+    } catch (error) {
+        console.error("❌ Fehler beim Speichern der Labor-Ergebnisse:", error);
+        res.status(500).json({ error: "Fehler beim Speichern" });
+    }
+});
+
+app.get("/api/getAllResults", async (req, res) => {
+    try {
+        if (req.headers.authorization !== `Bearer ${process.env.ADMIN_SECRET}`) {
+            return res.status(403).json({ error: "Nicht autorisiert" });
+        }
+
+        const snapshot = await db.collection("laborErgebnisse").orderBy("timestamp", "desc").get();
+        let results = [];
+        snapshot.forEach(doc => {
+            results.push(doc.data());
+        });
+
+        res.status(200).json(results);
+    } catch (error) {
+        console.error("❌ Fehler beim Abrufen der Ergebnisse:", error);
+        res.status(500).json({ error: "Fehler beim Abrufen der Ergebnisse" });
+    }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server läuft auf Port ${PORT}`));
