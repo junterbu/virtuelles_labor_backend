@@ -5,7 +5,6 @@ import admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 import nodemailer from "nodemailer";
 import fileUpload from "express-fileupload";
-import { put, del } from "@vercel/blob";
 
 
 // .env Datei laden
@@ -55,32 +54,18 @@ if (!admin.apps.length) {
 
 const db = getFirestore();
 const app = express();
-app.use(cors({
-    origin: "*", // 🔥 Alle Domains erlauben
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    exposedHeaders: ["Content-Disposition"]
-}));
-app.use(express.json({ limit: "50mb" }));  // 🔥 Erlaubt größere JSON-Payloads
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
-app.use(fileUpload({
-    limits: { fileSize: 52428800 } // 🔥 Erlaubt bis zu 50 MB
-}));
+app.use(cors(corsOptions));
+app.use(express.json());
+app.use(fileUpload());
 
-// 🔥 Zusätzliche CORS-Header setzen, um sicherzustellen, dass sie nicht entfernt werden
+// Middleware für CORS, falls Vercel Header entfernt
 app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader("Access-Control-Expose-Headers", "Content-Length");
-    res.setHeader("Content-Length", req.headers["content-length"] || "0");
-
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
     if (req.method === "OPTIONS") {
-        console.log("🛑 Preflight-Anfrage erkannt. Antwort gesendet.");
-        return res.status(204).end(); // OPTIONS-Request sofort beantworten
+        return res.status(200).end();
     }
-
     next();
 });
 
@@ -283,65 +268,44 @@ app.get("/api/quizErgebnisse/:userId", async (req, res) => {
     }
 });
 
-// 🔥 1️⃣ Chunks direkt in Vercel Blob speichern
-app.post("/api/uploadChunk", async (req, res) => {
+app.post("/api/sendEmail", async (req, res) => {
     try {
-        const { userId, fileName, chunkIndex, totalChunks } = req.body;
-        const chunk = req.files.chunk;
+        console.log("📧 E-Mail-Versand angefordert...");
 
-        if (!chunk) {
-            return res.status(400).json({ error: "Kein Datei-Chunk erhalten" });
+        if (!req.files || !req.files.pdf) {
+            console.error("❌ Kein PDF erhalten!");
+            return res.status(400).json({ error: "Kein PDF gefunden" });
         }
 
-        const chunkPath = `chunks/${userId}/${fileName}.part${chunkIndex}`;
-        const blob = await put(chunkPath, chunk.data, { access: "private" });
+        const userId = req.body.userId;
+        const pdfFile = req.files.pdf;
 
-        console.log(`✅ Chunk ${chunkIndex + 1}/${totalChunks} gespeichert: ${blob.url}`);
-        res.status(200).json({ message: `Chunk ${chunkIndex + 1}/${totalChunks} gespeichert`, url: blob.url });
-
-    } catch (error) {
-        console.error("❌ Fehler beim Hochladen eines Chunks:", error);
-        res.status(500).json({ error: "Fehler beim Hochladen eines Chunks" });
-    }
-});
-
-// 🔥 2️⃣ Chunks zusammenfügen und als PDF speichern
-app.post("/api/mergeChunks", async (req, res) => {
-    try {
-        const { userId, fileName, totalChunks } = req.body;
-        const mergedFilePath = `laborberichte/${fileName}`;
-
-        let fileData = Buffer.alloc(0);
-
-        for (let i = 0; i < totalChunks; i++) {
-            const chunkPath = `chunks/${userId}/${fileName}.part${i}`;
-
-            // 🔥 Nutze fetch() zum Abrufen der Datei
-            const response = await fetch(`https://blob.vercel-storage.com/${chunkPath}`, {
-                method: "GET",
-                headers: { Authorization: `Bearer ${process.env.VERCEL_BLOB_READ_WRITE_TOKEN}` },
-            });
-
-            if (!response.ok) {
-                return res.status(400).json({ error: `Chunk ${i + 1} konnte nicht abgerufen werden` });
+        let transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
             }
+        });
 
-            const chunkBuffer = Buffer.from(await response.arrayBuffer());
-            fileData = Buffer.concat([fileData, chunkBuffer]);
+        let mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: "jan.unterbuchschachner@tuwien.ac.at",
+            subject: `📄 Prüfbericht von ${userId}`,
+            text: `Hier ist der Prüfbericht von ${userId}`,
+            attachments: [{ filename: `Prüfbericht_${userId}.pdf`, content: pdfFile.data }]
+        };
 
-            // 🔥 Lösche den Chunk nach dem Zusammenfügen
-            await del(chunkPath);
-        }
-
-        // 🔥 Endgültige Datei hochladen
-        const finalBlob = await put(mergedFilePath, fileData, { access: "public" });
-
-        console.log(`✅ PDF erfolgreich gespeichert: ${finalBlob.url}`);
-        res.status(200).json({ message: "PDF erfolgreich gespeichert", url: finalBlob.url });
+        await transporter.sendMail(mailOptions);
+        console.log(`✅ E-Mail mit PDF gesendet an: jan.unterbuchschachner@tuwien.ac.at`);
+        res.status(200).json({ message: "E-Mail mit PDF gesendet" });
 
     } catch (error) {
-        console.error("❌ Fehler beim Zusammenfügen der Datei:", error);
-        res.status(500).json({ error: "Fehler beim Zusammenfügen der Datei" });
+        console.error("❌ Fehler beim E-Mail-Versand:", error);
+        res.status(500).json({ 
+            error: "Fehler beim Senden der E-Mail", 
+            details: error.toString() // 🔥 Fehlerdetails ausgeben
+        });
     }
 });
 
