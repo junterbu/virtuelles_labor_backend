@@ -6,6 +6,15 @@
   "rewrites": [
     { "source": "/(.*)", "destination": "server.js" }
   ],
+  "functions": {
+    "api/*.js": {
+      "maxDuration": 10,
+      "memory": 1024,
+      "limits": {
+        "payload": 52428800
+      }
+    }
+  },
   "headers": [
     {
       "source": "/api/(.*)",
