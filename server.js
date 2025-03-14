@@ -370,7 +370,7 @@ async function appendToCSV(userId, punkte, optimalerBitumengehalt, maximaleRaumd
 
         // Aktualisierte CSV-Datei hochladen
         await put(CSV_FILE_NAME, csvContent, {
-            access: "private",
+            access: "public",
             contentType: "text/csv",
         });
 
