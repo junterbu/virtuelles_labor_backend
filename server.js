@@ -60,7 +60,6 @@ app.use(fileUpload({
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(fileUpload());
 
 // Middleware für CORS, falls Vercel Header entfernt
 app.use((req, res, next) => {
@@ -275,6 +274,9 @@ app.get("/api/quizErgebnisse/:userId", async (req, res) => {
 app.post("/api/sendEmail", async (req, res) => {
     try {
         console.log("📧 E-Mail-Versand angefordert...");
+        console.log("🗂️ Request Headers:", req.headers);
+        console.log("📂 Request Body:", req.body);
+        console.log("📄 Request Files:", req.files);
 
         if (!req.files || !req.files.pdf) {
             console.error("❌ Kein PDF erhalten!");
