@@ -5,7 +5,7 @@ import admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 import nodemailer from "nodemailer";
 import fileUpload from "express-fileupload";
-import {put} from "@vercel/blob";
+import { put, get, del } from "@vercel/blob";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from 'url';
@@ -285,15 +285,7 @@ app.get("/api/quizErgebnisse/:userId", async (req, res) => {
     }
 });
 
-// __dirname für ES-Module setzen
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const UPLOAD_DIR = path.join(__dirname, "uploads");
-if (!fs.existsSync(UPLOAD_DIR)) {
-    fs.mkdirSync(UPLOAD_DIR);
-}
-
-// 🔥 Route zum Hochladen von Datei-Chunks
+// 🔥 1️⃣ Chunks direkt in Vercel Blob speichern
 app.post("/api/uploadChunk", async (req, res) => {
     try {
         const { userId, fileName, chunkIndex, totalChunks } = req.body;
@@ -303,44 +295,43 @@ app.post("/api/uploadChunk", async (req, res) => {
             return res.status(400).json({ error: "Kein Datei-Chunk erhalten" });
         }
 
-        const tempFilePath = path.join(UPLOAD_DIR, `${fileName}.part${chunkIndex}`);
-        await chunk.mv(tempFilePath);
-        console.log(`📂 Chunk ${chunkIndex + 1}/${totalChunks} gespeichert`);
+        const chunkPath = `chunks/${userId}/${fileName}.part${chunkIndex}`;
 
-        res.status(200).json({ message: `Chunk ${chunkIndex + 1}/${totalChunks} gespeichert` });
+        const blob = await put(chunkPath, chunk.data, { access: "private" });
+
+        console.log(`✅ Chunk ${chunkIndex + 1}/${totalChunks} gespeichert: ${blob.url}`);
+        res.status(200).json({ message: `Chunk ${chunkIndex + 1}/${totalChunks} gespeichert`, url: blob.url });
 
     } catch (error) {
-        console.error("❌ Fehler beim Speichern eines Chunks:", error);
-        res.status(500).json({ error: "Fehler beim Speichern eines Chunks" });
+        console.error("❌ Fehler beim Hochladen eines Chunks:", error);
+        res.status(500).json({ error: "Fehler beim Hochladen eines Chunks" });
     }
 });
 
-// 🔥 Route zum Zusammenfügen der Datei
+// 🔥 2️⃣ Chunks zusammenfügen und als PDF speichern
 app.post("/api/mergeChunks", async (req, res) => {
     try {
         const { userId, fileName, totalChunks } = req.body;
-        const finalFilePath = path.join(UPLOAD_DIR, fileName);
-        const writeStream = fs.createWriteStream(finalFilePath);
+        const mergedFilePath = `laborberichte/${fileName}`;
+
+        let fileData = Buffer.alloc(0);
 
         for (let i = 0; i < totalChunks; i++) {
-            const chunkPath = path.join(UPLOAD_DIR, `${fileName}.part${i}`);
-            if (!fs.existsSync(chunkPath)) {
-                return res.status(400).json({ error: `Chunk ${i + 1} fehlt` });
-            }
-            const chunkData = fs.readFileSync(chunkPath);
-            writeStream.write(chunkData);
-            fs.unlinkSync(chunkPath); // 🔥 Löscht Chunk nach dem Zusammenfügen
+            const chunkPath = `chunks/${userId}/${fileName}.part${i}`;
+            const chunkBlob = await get(chunkPath);
+            const chunkBuffer = Buffer.from(await chunkBlob.arrayBuffer());
+
+            fileData = Buffer.concat([fileData, chunkBuffer]);
+
+            // 🔥 Lösche den Chunk nach dem Zusammenfügen
+            await del(chunkPath);
         }
-        writeStream.end();
 
-        // 🔥 Datei in Vercel Blob hochladen
-        const fileData = fs.readFileSync(finalFilePath);
-        const blob = await put(`laborberichte/${fileName}`, fileData, { access: "public" });
+        // 🔥 Endgültige Datei hochladen
+        const finalBlob = await put(mergedFilePath, fileData, { access: "public" });
 
-        fs.unlinkSync(finalFilePath); // 🔥 Löscht die temporäre Datei nach dem Hochladen
-
-        console.log(`✅ PDF erfolgreich gespeichert: ${blob.url}`);
-        res.status(200).json({ message: "PDF erfolgreich gespeichert", url: blob.url });
+        console.log(`✅ PDF erfolgreich gespeichert: ${finalBlob.url}`);
+        res.status(200).json({ message: "PDF erfolgreich gespeichert", url: finalBlob.url });
 
     } catch (error) {
         console.error("❌ Fehler beim Zusammenfügen der Datei:", error);
