@@ -5,10 +5,8 @@ import admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 import nodemailer from "nodemailer";
 import fileUpload from "express-fileupload";
-import { put, get, del } from "@vercel/blob";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from 'url';
+import { put, del } from "@vercel/blob";
+
 
 // .env Datei laden
 dotenv.config();
@@ -296,7 +294,6 @@ app.post("/api/uploadChunk", async (req, res) => {
         }
 
         const chunkPath = `chunks/${userId}/${fileName}.part${chunkIndex}`;
-
         const blob = await put(chunkPath, chunk.data, { access: "private" });
 
         console.log(`✅ Chunk ${chunkIndex + 1}/${totalChunks} gespeichert: ${blob.url}`);
@@ -318,9 +315,18 @@ app.post("/api/mergeChunks", async (req, res) => {
 
         for (let i = 0; i < totalChunks; i++) {
             const chunkPath = `chunks/${userId}/${fileName}.part${i}`;
-            const chunkBlob = await get(chunkPath);
-            const chunkBuffer = Buffer.from(await chunkBlob.arrayBuffer());
 
+            // 🔥 Nutze fetch() zum Abrufen der Datei
+            const response = await fetch(`https://blob.vercel-storage.com/${chunkPath}`, {
+                method: "GET",
+                headers: { Authorization: `Bearer ${process.env.VERCEL_BLOB_READ_WRITE_TOKEN}` },
+            });
+
+            if (!response.ok) {
+                return res.status(400).json({ error: `Chunk ${i + 1} konnte nicht abgerufen werden` });
+            }
+
+            const chunkBuffer = Buffer.from(await response.arrayBuffer());
             fileData = Buffer.concat([fileData, chunkBuffer]);
 
             // 🔥 Lösche den Chunk nach dem Zusammenfügen
