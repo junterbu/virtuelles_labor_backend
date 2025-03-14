@@ -18,7 +18,7 @@
     }
   ],
   "functions": {
-    "/api/sendEmail": {
+    "api/sendEmail": {
       "maxDuration": 10,
       "memory": 1024
     }
