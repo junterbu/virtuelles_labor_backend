@@ -5,6 +5,10 @@ import admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 import nodemailer from "nodemailer";
 import fileUpload from "express-fileupload";
+import fs from "fs";
+import path from "path";
+
+const CSV_FILE_PATH = path.join("/tmp", "labor_ergebnisse.csv"); // Vercel Storage (temp-Ordner)
 
 
 // .env Datei laden
@@ -315,6 +319,7 @@ app.post("/api/sendEmail", async (req, res) => {
     }
 });
 
+// 🔹 Route zum Speichern der Ergebnisse in Firestore + CSV
 app.post("/api/storeResults", async (req, res) => {
     try {
         const { userId, punkte, optimalerBitumengehalt, maximaleRaumdichte } = req.body;
@@ -323,6 +328,7 @@ app.post("/api/storeResults", async (req, res) => {
             return res.status(400).json({ error: "Fehlende Daten" });
         }
 
+        // Speichern in Firestore
         const docRef = db.collection("laborErgebnisse").doc(userId);
         await docRef.set({
             userId,
@@ -332,32 +338,30 @@ app.post("/api/storeResults", async (req, res) => {
             timestamp: new Date()
         });
 
-        console.log(`✅ Labor-Ergebnisse gespeichert für User: ${userId}`);
+        // Speichern in der CSV-Datei
+        await appendToCSV(userId, punkte, optimalerBitumengehalt, maximaleRaumdichte);
+
         res.status(200).json({ message: "Ergebnisse gespeichert" });
     } catch (error) {
-        console.error("❌ Fehler beim Speichern der Labor-Ergebnisse:", error);
+        console.error("❌ Fehler beim Speichern:", error);
         res.status(500).json({ error: "Fehler beim Speichern" });
     }
 });
 
-app.get("/api/getAllResults", async (req, res) => {
-    try {
-        if (req.headers.authorization !== `Bearer ${process.env.ADMIN_SECRET}`) {
-            return res.status(403).json({ error: "Nicht autorisiert" });
-        }
+async function appendToCSV(userId, punkte, optimalerBitumengehalt, maximaleRaumdichte) {
+    const neueZeile = `${userId},${punkte},${optimalerBitumengehalt},${maximaleRaumdichte},${new Date().toISOString()}\n`;
 
-        const snapshot = await db.collection("laborErgebnisse").orderBy("timestamp", "desc").get();
-        let results = [];
-        snapshot.forEach(doc => {
-            results.push(doc.data());
-        });
-
-        res.status(200).json(results);
-    } catch (error) {
-        console.error("❌ Fehler beim Abrufen der Ergebnisse:", error);
-        res.status(500).json({ error: "Fehler beim Abrufen der Ergebnisse" });
+    // Falls CSV-Datei nicht existiert, erstelle sie mit Headern
+    if (!fs.existsSync(CSV_FILE_PATH)) {
+        const header = "Matrikelnummer,Quiz-Punkte,Optimaler Bitumengehalt,Maximale Raumdichte,Datum\n";
+        fs.writeFileSync(CSV_FILE_PATH, header, "utf8");
+        console.log("📄 Neue CSV-Datei erstellt.");
     }
-});
+
+    // Neue Zeile hinzufügen
+    fs.appendFileSync(CSV_FILE_PATH, neueZeile, "utf8");
+    console.log("✅ Neue Zeile zur CSV hinzugefügt:", neueZeile);
+}
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server läuft auf Port ${PORT}`));
