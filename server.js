@@ -55,19 +55,23 @@ if (!admin.apps.length) {
 const db = getFirestore();
 const app = express();
 app.use(cors(corsOptions));
+app.use(express.json({ limit: "20mb" }));  // 🔥 Erlaubt größere JSON-Payloads
+app.use(express.urlencoded({ limit: "20mb", extended: true }));
 app.use(express.json());
 app.use(fileUpload({
     limits: { fileSize: 15 * 1024 * 1024 } // 🔥 Erlaubt bis zu 15 MB
 }));
 
-// Middleware für CORS, falls Vercel Header entfernt
 app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*"); // 🔥 Erlaubt Anfragen von überall
-    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+
     if (req.method === "OPTIONS") {
-        return res.status(200).end();
+        return res.status(204).end();  // Sofortige Antwort auf Preflight-Anfragen
     }
+
     next();
 });
 
@@ -273,6 +277,7 @@ app.get("/api/quizErgebnisse/:userId", async (req, res) => {
 app.post("/api/sendEmail", async (req, res) => {
     try {
         console.log("📧 E-Mail-Versand angefordert...");
+        console.log("📩 Verwendete E-Mail:", process.env.EMAIL_USER);
 
         if (!req.files || !req.files.pdf) {
             console.error("❌ Kein PDF erhalten!");
@@ -281,6 +286,8 @@ app.post("/api/sendEmail", async (req, res) => {
 
         const userId = req.body.userId;
         const pdfFile = req.files.pdf;
+
+        console.log(`📂 Datei erhalten: ${pdfFile.name}, Größe: ${pdfFile.size} Bytes`);
 
         let transporter = nodemailer.createTransport({
             service: "gmail",
@@ -306,7 +313,7 @@ app.post("/api/sendEmail", async (req, res) => {
         console.error("❌ Fehler beim E-Mail-Versand:", error);
         res.status(500).json({ 
             error: "Fehler beim Senden der E-Mail", 
-            details: error.toString() // 🔥 Fehlerdetails ausgeben
+            details: error.toString()
         });
     }
 });
