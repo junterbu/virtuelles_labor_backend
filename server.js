@@ -5,7 +5,7 @@ import admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 import nodemailer from "nodemailer";
 import fileUpload from "express-fileupload";
-
+import {put} from "@vercel/blob";
 
 // .env Datei laden
 dotenv.config();
@@ -281,47 +281,27 @@ app.get("/api/quizErgebnisse/:userId", async (req, res) => {
     }
 });
 
-app.post("/api/sendEmail", async (req, res) => {
+app.post("/api/uploadPDF", async (req, res) => {
     try {
-        console.log("📧 E-Mail-Versand angefordert...");
-        console.log("📩 Verwendete E-Mail:", process.env.EMAIL_USER);
+        console.log("📂 PDF-Upload angefordert...");
 
         if (!req.files || !req.files.pdf) {
-            console.error("❌ Kein PDF erhalten!");
-            return res.status(400).json({ error: "Kein PDF gefunden" });
+            return res.status(400).json({ error: "Kein PDF erhalten" });
         }
 
-        const userId = req.body.userId;
         const pdfFile = req.files.pdf;
+        console.log(`📄 Datei erhalten: ${pdfFile.name}, Größe: ${pdfFile.size} Bytes`);
 
-        console.log(`📂 Datei erhalten: ${pdfFile.name}, Größe: ${pdfFile.size} Bytes`);
-
-        let transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            }
+        // 🔥 Datei zu Vercel Blob hochladen
+        const blob = await put(`laborberichte/${pdfFile.name}`, pdfFile.data, {
+            access: "public", // Datei öffentlich verfügbar machen
         });
 
-        let mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: "jan.unterbuchschachner@tuwien.ac.at",
-            subject: `📄 Prüfbericht von ${userId}`,
-            text: `Hier ist der Prüfbericht von ${userId}`,
-            attachments: [{ filename: `Prüfbericht_${userId}.pdf`, content: pdfFile.data }]
-        };
-
-        await transporter.sendMail(mailOptions);
-        console.log(`✅ E-Mail mit PDF gesendet an: jan.unterbuchschachner@tuwien.ac.at`);
-        res.status(200).json({ message: "E-Mail mit PDF gesendet" });
-
+        console.log(`✅ PDF gespeichert unter: ${blob.url}`);
+        res.status(200).json({ message: "PDF erfolgreich gespeichert", url: blob.url });
     } catch (error) {
-        console.error("❌ Fehler beim E-Mail-Versand:", error);
-        res.status(500).json({ 
-            error: "Fehler beim Senden der E-Mail", 
-            details: error.toString()
-        });
+        console.error("❌ Fehler beim Speichern des PDFs:", error);
+        res.status(500).json({ error: "Fehler beim Speichern des PDFs", details: error.toString() });
     }
 });
 
