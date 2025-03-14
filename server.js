@@ -56,7 +56,9 @@ const db = getFirestore();
 const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
-app.use(fileUpload());
+app.use(fileUpload({
+    limits: { fileSize: 15 * 1024 * 1024 } // 🔥 Erlaubt bis zu 15 MB
+}));
 
 // Middleware für CORS, falls Vercel Header entfernt
 app.use((req, res, next) => {
