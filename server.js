@@ -64,7 +64,7 @@ app.use(express.json({ limit: "20mb" }));  // 🔥 Erlaubt größere JSON-Payloa
 app.use(express.urlencoded({ limit: "20mb", extended: true }));
 app.use(express.json());
 app.use(fileUpload({
-    limits: { fileSize: 15 * 1024 * 1024 } // 🔥 Erlaubt bis zu 15 MB
+    limits: { fileSize: 50 * 1024 * 1024 } // 🔥 Erlaubt bis zu 50 MB
 }));
 
 // 🔥 Zusätzliche CORS-Header setzen, um sicherzustellen, dass sie nicht entfernt werden

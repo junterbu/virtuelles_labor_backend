@@ -16,5 +16,19 @@
         { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version" }
       ]
     }
+  ],
+  "functions": {
+    "api/uploadPDF": {
+      "maxDuration": 10,
+      "memory": 1024,
+      "maxRequestSize": 50
+    }
+  },
+  "routes": [
+    {
+      "src": "/api/uploadPDF",
+      "methods": ["POST"],
+      "dest": "/api/uploadPDF"
+    }
   ]
 }
