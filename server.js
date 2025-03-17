@@ -346,12 +346,16 @@ async function appendToCSV(userId, punkte, optimalerBitumengehalt, maximaleRaumd
     try {
         let csvContent = "Matrikelnummer,Quiz-Punkte,Optimaler Bitumengehalt,Maximale Raumdichte,Datum\n";
         let userExists = false;
+        let oldCsvUrl = null;
 
         // Prüfen, ob die Datei existiert
         const blobs = await list();
         const existingBlob = blobs.blobs.find(blob => blob.pathname === CSV_FILE_NAME);
 
         if (existingBlob) {
+            // Speichere die alte CSV-URL für spätere Löschung
+            oldCsvUrl = existingBlob.url;
+
             // Falls Datei existiert, lade den aktuellen Inhalt herunter
             const response = await fetch(existingBlob.url);
             const csvLines = (await response.text()).split("\n");
@@ -371,15 +375,35 @@ async function appendToCSV(userId, punkte, optimalerBitumengehalt, maximaleRaumd
         const neueZeile = `${userId},${punkte},${optimalerBitumengehalt},${maximaleRaumdichte},${new Date().toISOString()}\n`;
         csvContent += neueZeile;
 
-        // Aktualisierte CSV-Datei hochladen
-        await put(CSV_FILE_NAME, csvContent, {
+        // Neue CSV-Datei hochladen
+        const newCsvUpload = await put(CSV_FILE_NAME, csvContent, {
             access: "public",
             contentType: "text/csv",
         });
 
-        console.log("✅ Erste Eintragung für User in CSV gespeichert:", neueZeile);
+        console.log("✅ Neue CSV-Version gespeichert:", newCsvUpload.url);
+
+        // Alte CSV-Datei löschen, falls vorhanden
+        if (oldCsvUrl) {
+            await deleteOldCSV();
+        }
+
     } catch (error) {
-        console.error("❌ Fehler beim Speichern in Vercel Storage:", error);
+        console.error("❌ Fehler beim Speichern der CSV-Datei:", error);
+    }
+}
+
+async function deleteOldCSV() {
+    try {
+        const blobs = await list();
+        const oldCsv = blobs.blobs.find(blob => blob.pathname === CSV_FILE_NAME);
+
+        if (oldCsv) {
+            await fetch(oldCsv.url, { method: "DELETE" });
+            console.log("🗑️ Alte CSV-Datei erfolgreich gelöscht:", oldCsv.url);
+        }
+    } catch (error) {
+        console.error("❌ Fehler beim Löschen der alten CSV-Datei:", error);
     }
 }
 
