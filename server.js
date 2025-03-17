@@ -346,16 +346,12 @@ async function appendToCSV(userId, punkte, optimalerBitumengehalt, maximaleRaumd
     try {
         let csvContent = "Matrikelnummer,Quiz-Punkte,Optimaler Bitumengehalt,Maximale Raumdichte,Datum\n";
         let userExists = false;
-        let oldCsvUrl = null;
 
         // Prüfen, ob die Datei existiert
         const blobs = await list();
         const existingBlob = blobs.blobs.find(blob => blob.pathname === CSV_FILE_NAME);
 
         if (existingBlob) {
-            // Speichere die alte CSV-URL für spätere Löschung
-            oldCsvUrl = existingBlob.url;
-
             // Falls Datei existiert, lade den aktuellen Inhalt herunter
             const response = await fetch(existingBlob.url);
             const csvLines = (await response.text()).split("\n");
@@ -371,25 +367,19 @@ async function appendToCSV(userId, punkte, optimalerBitumengehalt, maximaleRaumd
             csvContent = csvLines.join("\n"); // Behalte bestehenden Inhalt
         }
 
-        // Neue Zeile hinzufügen (nur wenn User-ID nicht existiert)
-        const neueZeile = `${userId},${punkte},${optimalerBitumengehalt},${maximaleRaumdichte},${new Date().toISOString()}\n`;
-        csvContent += neueZeile;
+        // Neue Zeile hinzufügen (nur falls User noch nicht existiert)
+        const neueZeile = `${userId},${punkte},${optimalerBitumengehalt},${maximaleRaumdichte},${new Date().toISOString()}`;
+        csvContent += `\n${neueZeile}`; // Zeile anfügen
 
-        // Neue CSV-Datei hochladen
-        const newCsvUpload = await put(CSV_FILE_NAME, csvContent, {
+        // **Überschreibe die bestehende CSV mit der neuen Version**
+        await put(CSV_FILE_NAME, csvContent, {
             access: "public",
             contentType: "text/csv",
         });
 
-        console.log("✅ Neue CSV-Version gespeichert:", newCsvUpload.url);
-
-        // Alte CSV-Datei löschen, falls vorhanden
-        if (oldCsvUrl) {
-            await deleteOldCSV();
-        }
-
+        console.log("✅ CSV-Datei erfolgreich aktualisiert.");
     } catch (error) {
-        console.error("❌ Fehler beim Speichern der CSV-Datei:", error);
+        console.error("❌ Fehler beim Aktualisieren der CSV-Datei:", error);
     }
 }
 
