@@ -286,16 +286,25 @@ app.post("/api/uploadPDF", async (req, res) => {
         }
 
         const userId = req.body.userId;
-        const pdfFile = req.files.pdf;
         const fileName = `Laborberichte/Pruefbericht_${userId}.pdf`;
 
-        // PDF in Vercel Blob Storage hochladen
+        // Prüfen, ob bereits ein Prüfbericht existiert
+        const blobs = await list();
+        const existingPDF = blobs.blobs.find(blob => blob.pathname === fileName);
+
+        if (existingPDF) {
+            console.log(`⚠️ Prüfbericht für User ${userId} existiert bereits. Kein neuer Upload.`);
+            return res.status(200).json({ message: "PDF bereits gespeichert", url: existingPDF.url });
+        }
+
+        // PDF hochladen
+        const pdfFile = req.files.pdf;
         const uploadResult = await put(fileName, pdfFile.data, {
-            access: "public",  // Zugriff beschränken, da nur du die Datei benötigst
+            access: "public", // Falls es nur für dich zugänglich sein soll, setze "private"
             contentType: "application/pdf"
         });
 
-        console.log(`✅ PDF gespeichert in Blob Storage: ${uploadResult.url}`);
+        console.log(`✅ Erster Prüfbericht gespeichert: ${uploadResult.url}`);
         res.status(200).json({ message: "PDF gespeichert", url: uploadResult.url });
 
     } catch (error) {
@@ -336,6 +345,7 @@ app.post("/api/storeResults", async (req, res) => {
 async function appendToCSV(userId, punkte, optimalerBitumengehalt, maximaleRaumdichte) {
     try {
         let csvContent = "Matrikelnummer,Quiz-Punkte,Optimaler Bitumengehalt,Maximale Raumdichte,Datum\n";
+        let userExists = false;
 
         // Prüfen, ob die Datei existiert
         const blobs = await list();
@@ -344,10 +354,20 @@ async function appendToCSV(userId, punkte, optimalerBitumengehalt, maximaleRaumd
         if (existingBlob) {
             // Falls Datei existiert, lade den aktuellen Inhalt herunter
             const response = await fetch(existingBlob.url);
-            csvContent = await response.text();
+            const csvLines = (await response.text()).split("\n");
+
+            // Prüfen, ob die User-ID bereits existiert
+            userExists = csvLines.some(line => line.startsWith(userId + ","));
+
+            if (userExists) {
+                console.log(`⚠️ User ${userId} ist bereits in der CSV vorhanden. Kein neuer Eintrag.`);
+                return; // Keine weitere Speicherung
+            }
+
+            csvContent = csvLines.join("\n"); // Behalte bestehenden Inhalt
         }
 
-        // Neue Zeile hinzufügen
+        // Neue Zeile hinzufügen (nur wenn User-ID nicht existiert)
         const neueZeile = `${userId},${punkte},${optimalerBitumengehalt},${maximaleRaumdichte},${new Date().toISOString()}\n`;
         csvContent += neueZeile;
 
@@ -357,7 +377,7 @@ async function appendToCSV(userId, punkte, optimalerBitumengehalt, maximaleRaumd
             contentType: "text/csv",
         });
 
-        console.log("✅ Neue Zeile zur CSV in Vercel Blob Storage hinzugefügt:", neueZeile);
+        console.log("✅ Erste Eintragung für User in CSV gespeichert:", neueZeile);
     } catch (error) {
         console.error("❌ Fehler beim Speichern in Vercel Storage:", error);
     }
