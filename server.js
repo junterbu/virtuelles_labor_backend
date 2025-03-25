@@ -227,7 +227,7 @@ app.get("/api/quizfragen/:userId", async (req, res) => {
             "Grenzsieblinien",
             "Raumdichte"
         ];
-        const zufallsFragen = alleFragen.sort(() => Math.random() - 0.5).slice(0, 8); // Wähle 8 zufällige Fragen
+        const zufallsFragen = alleFragen.sort(() => Math.random() - 0.5).slice(0, 7); // Wähle 7 zufällige Fragen
 
         await docRef.set({ fragen: zufallsFragen });
         return res.status(200).json({ fragen: zufallsFragen });
